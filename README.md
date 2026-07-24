@@ -8,7 +8,17 @@ GPT를 세 형태로 세운다.
 - **워커 서브에이전트** — GPT 자체가 서브에이전트의 LLM이라 파일을 직접 만진다(프록시 세션 전용).
 - **메인 루프 모델** — Claude Code 전체를 GPT로 돌린다.
 
-방법론은 [SKILL.md](SKILL.md)와 [references/](references/)에 있다. 프론트엔드 디자인·CI/CD는 GPT에 맡기지 않는다(감각·안정성 문제) — 그 게이트를 구조로 강제한다.
+방법론은 [SKILL.md](SKILL.md)와 [references/](references/)에 있다. 프론트엔드 디자인·CI/CD는 GPT에 맡기지 않는다(감각·안정성 문제). 그 게이트를 구조로 강제한다.
+
+## 무엇이 실측인가
+모델·effort 선택과 위임 프롬프트 규칙은 인상이 아니라 통제 실험에서 나왔다. 정답이 확정된 과제(심은 결함의 위치·수정·트리거가 고정되어 있고, 구현은 숨긴 테스트를 컴파일·실행해 채점)로 측정했고, 지어내기를 잡으려고 결함 없는 대조판과 존재하지 않는 대상에 대한 질문을 함께 돌렸다.
+
+- 원 데이터와 실험 설계 — [references/measurements.md](references/measurements.md)
+- 역할별 모델·effort 선택 — [references/tiers.md](references/tiers.md)
+- 위임 프롬프트 네 규칙(A/B 근거 포함) — [references/prompt-rules.md](references/prompt-rules.md)
+- 명세를 얼마나 줘야 하는가 — [references/delegation-boundary.md](references/delegation-boundary.md)
+
+핵심만 옮기면 이렇다. 잘 명세된 구현은 가장 싼 티어로 충분하고, 의미·순서 결함을 잡는 리뷰는 모델을 가리며, reasoning effort는 올릴수록 좋아지지 않는다. 그리고 **날조는 모델의 성질이 아니라 프롬프트의 성질이다.** 같은 모델이 "확인 못 하면 못 한다고 하라" 한 문단의 유무로 완전히 갈렸다.
 
 ## 설치
 실행 도구(릴레이·프록시·런처·서브에이전트)는 이 소스 트리에 없다. 최신 **[Releases](../../releases)**에서 `gpt-build-harness-tools.zip`을 받아 안의 설치 스크립트를 실행한다.

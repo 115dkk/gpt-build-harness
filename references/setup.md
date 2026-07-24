@@ -13,7 +13,7 @@
 자세한 판단은 `three-forms.md`.
 
 ## 티어 운용
-Luna xhigh/max = 다역 잡부(기본). Luna low~medium = 아주 단순한 작업. SOL medium = 지식 집약(알고리즘·DSP). SOL high = 교차검증·백엔드 검토(high 초과 금지). Terra 비권장. 메인/워커로 매 턴 고effort는 느리니 기본 medium.
+`tiers.md`의 실측표를 따른다. 요약하면 구현은 luna low, 리뷰·검증은 sol medium(더 싸게는 terra medium), 교차검증·2차 의견은 sol high다. SOL은 high를 넘기지 않는다. effort는 단조가 아니므로 낮은 데서 시작하고, 호출할 때 항상 명시한다(생략하면 릴레이 기본값 xhigh로 간다).
 
 ## 설치
 릴리즈에서 도구 zip을 받아 install 스크립트를 실행한다. 대상별 배치 위치와 절차는 README의 "설치"를 따른다. 도구의 상세 동작은 설치된 스크립트의 주석에 있다.
