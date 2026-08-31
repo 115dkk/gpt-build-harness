@@ -4,7 +4,7 @@ OpenAI의 Daybreak Blue를 ChatGPT **구독 쿼터**로(별도 API 과금 없이
 
 ## 무엇인가
 
-GPT를 **네 형태**로 세운다. 어느 형태를 쓰는지는 *GPT가 도구를 직접 쥐어야 하는가*와 *지금 세션이 프록시 base_url을 쓰는가*로 갈린다.
+GPT를 **네 형태**로 부린다. 어느 형태를 쓸지는 *GPT가 도구를 직접 쥐어야 하는가*와 *지금 세션이 프록시 base_url을 쓰는가*가 정한다.
 
 | 형태 | 도구 | 어디서 | 언제 |
 |---|---|---|---|
@@ -15,30 +15,34 @@ GPT를 **네 형태**로 세운다. 어느 형태를 쓰는지는 *GPT가 도구
 
 방법론은 [SKILL.md](SKILL.md)와 [references/](references/)에 있다.
 
-- 형태 고르기 — [references/three-forms.md](references/three-forms.md)
-- 검증된 함정 — [references/pitfalls.md](references/pitfalls.md)
-- 셋업 개요 — [references/setup.md](references/setup.md)
+- 형태 고르기: [references/three-forms.md](references/three-forms.md)
+- 검증된 함정: [references/pitfalls.md](references/pitfalls.md)
+- 셋업 개요: [references/setup.md](references/setup.md)
+
+## 문서 언어
+
+**정본은 영어 [SKILL.md](SKILL.md)다.** 스킬 문서는 매 세션 모델의 맥락에 올라가는데 한국어는 같은 내용에 토큰이 훨씬 많이 들어, 설치되고 배포되는 파일을 영어로 둔다. 한국어로 읽을 사람을 위해 같은 내용을 [SKILL_ko.md](SKILL_ko.md)로 저장소에 유지한다(설치·배포에는 들어가지 않는다). `references/`는 필요할 때만 펼쳐 보는 문서라 한국어 그대로 둔다.
 
 ## 방침 (2026-08-19 개정)
 
 - **모델은 Daybreak Blue 하나.** 슬러그 `gpt-daybreak-blue`, effort는 `high`가 기본이고 절망적으로 어려운 문제에만 `max`. 최고 성능이면서 할당량 가성비가 압도적이라 다른 모델을 부를 이유가 없다.
-- **프론트엔드에는 절대 쓰지 않는다.** 미감이 파멸적이라 사람이 쓸 수 없는 결과가 나온다. 기획도 작업도 Claude가 전담하며, 구판이 허용하던 "확정된 디자인의 렌더 번역" 같은 우회 위임도 폐기되었다.
+- **프론트엔드에는 절대 쓰지 않는다.** 미감이 파멸적이라 사람이 쓸 수 없는 결과가 나온다. 기획도 작업도 Claude가 전담하며, 구판이 허용하던 '확정된 디자인의 렌더 번역' 같은 우회 위임도 폐기했다.
 - **아키텍처·기획·CI/CD 설계는 Claude가 쥔다.** Daybreak는 전체 맥락을 보는 데 어려움이 있다. 인터페이스를 못박아 자기완결 명세로 넘기고, 적용·빌드·테스트·판정은 Claude가 한다. GPT의 자기 신고는 게이트가 아니다.
-- 구판(luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리)은 [references/legacy/](references/legacy/)에 보존만 해 두었다. 모델 라인업이 하나로 정리되면서 지침으로서는 폐기되었다.
+- 구판(luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리)은 [references/legacy/](references/legacy/)에 보존만 해 두었다. 모델 라인업이 하나로 정리되면서 지침으로서는 폐기했다.
 
 ## 설치
 
 실행 도구(릴레이·프록시·런처·직접 워커·서브에이전트)는 이 소스 트리에 없다. 최신 **[Releases](../../releases)** 에서 `gpt-build-harness-tools.zip`을 받아 안의 설치 스크립트를 실행한다.
 
-- **Claude Code (전역)** — `install/install-claude-code.ps1`. `~/.claude/skills/`, `~/.claude/tools/`, `~/.claude/agents/`에 배치된다. 새 세션부터 스킬과 `gpt` / `gpt-worker` 서브에이전트가 잡힌다.
-- **Claude 앱 (claude.ai)** — `install/claude-app-skill.zip`을 claude.ai의 스킬 업로드에 넣는다(방법론 문서만).
-- **Codex — 설치하지 않는다.** Codex 위의 GPT가 지침 계층 맨 위에서 "GPT를 잡부로 부리는 하네스"를 읽고 자기 자신을 부리려 드는 재귀 혼란이 난다. `install-codex.ps1`은 기록으로 남겨 두었을 뿐 실행하지 않는다.
+- **Claude Code (전역)**: `install/install-claude-code.ps1`. `~/.claude/skills/`, `~/.claude/tools/`, `~/.claude/agents/`에 배치한다. 새 세션부터 스킬과 `gpt` / `gpt-worker` 서브에이전트가 잡힌다.
+- **Claude 앱 (claude.ai)**: `install/claude-app-skill.zip`을 claude.ai의 스킬 업로드에 넣는다(방법론 문서만).
+- **Codex: 설치하지 않는다.** Codex 위의 GPT가 지침 계층 맨 위에서 'GPT를 잡부로 부리는 하네스'를 읽고 자기 자신을 부리려 드는 재귀 혼란이 난다. `install-codex.ps1`은 기록으로 남겨 두었을 뿐 실행하지 않는다.
 
 도구는 로컬 ChatGPT 구독 로그인(codex 인증 캐시)을 쓴다. 구독과 로그인은 사용자가 준비해야 한다.
 
 ## 어디서 왔나
 
-Qt 데스크톱 앱(Equalizer APO 에디터)의 한 조각을 Tauri 웹뷰로 포팅하는 토이에서 벼려졌고, 이후 Tauri 2 + Rust 안드로이드 앱의 백엔드를 통째로 위임하며 실전에서 다듬어졌다. 형성 과정과 밟은 함정은 [references/pitfalls.md](references/pitfalls.md)와 [references/legacy/harness-log.md](references/legacy/harness-log.md)에 있다.
+Qt 데스크톱 앱(Equalizer APO 에디터)의 한 조각을 Tauri 웹뷰로 포팅하는 토이에서 벼렸고, 이후 Tauri 2 + Rust 안드로이드 앱의 백엔드를 통째로 위임하며 실전에서 다듬었다. 형성 과정과 밟은 함정은 [references/pitfalls.md](references/pitfalls.md)와 [references/legacy/harness-log.md](references/legacy/harness-log.md)에 있다.
 
 ## 라이선스
 

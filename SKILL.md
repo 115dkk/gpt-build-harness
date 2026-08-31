@@ -1,84 +1,90 @@
 ---
 name: gpt-build-harness
 description: >-
-  Daybreak Blue(ChatGPT 구독 쿼터, API 과금 없음)를 백엔드 잡부·감사관으로
-  부려 구현·검증 노동을 저비용으로 굴리는 하네스. 호출 모델은 Daybreak
-  Blue(gpt-daybreak-blue, GPT-5.6 Sol의 신규 튜닝판) 하나뿐이며, effort는
-  high 기본·max는 절망적으로 어려운 문제 전용이다. Claude가 아키텍처·기획·
-  판정을 쥐고, Daybreak가 백엔드 코드와 소견을 낸다. 프론트엔드는 기획·작업
-  모두 Claude 전담이며 Daybreak를 절대 투입하지 않는다. GPT를 네 형태로
-  세운다 — (1) 도구 없는 오라클 릴레이(순수 소견 전용), (2) 직접
-  워커(gpt-agent.ps1: 어느 세션에서든 haiku 껍데기 없이 도구 쥔 GPT — 일반
-  세션의 기본 잡부), (3) 워커 서브에이전트(프록시 세션 전용; gpt-cc -Main
-  claude 혼합 세션이면 메인=Claude 그대로 Agent()로 네이티브 협업), (4)
-  Claude Code의 메인 루프 모델(500k 자동압축). 큰 백엔드 구현을 Claude
-  토큰만으로 감당하기 벅찰 때, 교차검증·2차 의견이 필요할 때, 감사·리뷰를
-  분담할 때 쓴다. 실행 도구는 릴리즈로 배포된다.
+  A harness that puts Daybreak Blue (ChatGPT subscription quota, no API
+  billing) to work as a backend labourer and auditor, so that implementation
+  and verification cost almost no Claude tokens. Daybreak Blue
+  (gpt-daybreak-blue, the new tuning of GPT-5.6 Sol) is the only model ever
+  called; effort is high by default, and max is reserved for hopelessly hard
+  problems. Claude keeps architecture, planning and the verdict; Daybreak
+  produces backend code and opinions. Frontend work, both planning and
+  implementation, belongs to Claude alone and is never handed to Daybreak.
+  GPT runs in four forms: (1) a tool-less oracle relay for opinions only,
+  (2) the direct worker (gpt-agent.ps1: a tool-holding GPT in any session
+  with no haiku wrapper, the default labourer in ordinary sessions), (3) the
+  worker subagent (proxy sessions only; with gpt-cc -Main claude the main
+  loop stays Claude and Agent() collaboration is native), (4) Claude Code's
+  main loop model (auto-compact at 500k). Use it when a large backend build
+  would burn too many Claude tokens, when cross-checking or a second opinion
+  is needed, or to split audit and review work. The executable tools ship as
+  a release asset.
 ---
 
-# GPT 빌드 하네스 (Daybreak Blue)
+# GPT Build Harness (Daybreak Blue)
 
-Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡부로 붙여 구현·검증 노동을 위임하고 Claude는 아키텍처·기획·적용·판정을 쥐는 방식이다. 호출은 ChatGPT **구독 쿼터**를 쓰므로 Claude 토큰을 아낀다.
+Instead of burning Claude on the whole build, attach Daybreak Blue as a backend labourer: delegate implementation and verification, and keep architecture, planning, integration and the verdict with Claude. Calls run on the ChatGPT **subscription quota**, so Claude tokens are saved.
 
-이 문서는 개요다. 형태별 상세는 `references/`에 있다. **실행 스크립트(릴레이·프록시·런처·에이전트)는 이 저장소 소스에 없고, 릴리즈 에셋 `gpt-build-harness-tools.zip`으로 배포된다.**
+This document is the overview; per-form detail lives in `references/`. **The executable scripts (relay, proxy, launcher, agent) are not in this repository's source. They ship as the release asset `gpt-build-harness-tools.zip`.**
 
-> 구판 문서의 luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리 등 "GPT 사용법" 계열 내용은 환각이 심해 **전면 폐기**되었다(2026-08-19). 아래 방침이 그 자리를 대체하는 정본이다.
+> The Korean edition of this document is kept in the repository as `SKILL_ko.md`. English is the canonical text: it is what gets installed, and it costs far fewer tokens to load.
 
-## 모델 방침 — Daybreak Blue 단일
+> Everything in the old docs that read as "how to use GPT" (the luna/sol/terra tier table, the effort measurement table, the prompt A/B battery) was **discarded outright** on 2026-08-19 for being riddled with hallucination. The policy below replaces it.
 
-**Daybreak Blue만 부른다.** 최고 성능 모델이면서 할당량 가성비가 압도적이라, 다른 모델(luna/sol/terra 등)을 부를 이유가 없다. GPT-5.6 Sol의 새로운 튜닝 버전이다.
+## Model policy — Daybreak Blue only
 
-- **슬러그: `gpt-daybreak-blue`** — 버전 접두사가 없다. 2026-08-19 codex responses 백엔드 실측으로 확인했다(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak` 등 변형은 전부 HTTP 400, `gpt-daybreak-blue`만 200).
-- **effort: `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** 릴레이 스크립트·프록시·런처의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
-- 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 워커·메인의 `gpt-daybreak-blue-high` 접미사형)은 `references/three-forms.md`.
+**Call Daybreak Blue and nothing else.** It is the top-performing model and its quota economics are overwhelming, so there is no reason to call luna/sol/terra or anything else. It is the new tuning of GPT-5.6 Sol.
 
-## 역할 경계 — 무엇을 맡기고 무엇을 쥐나
+- **Slug: `gpt-daybreak-blue`**, with no version prefix. Confirmed against the codex responses backend on 2026-08-19: variants such as `gpt-5.6-daybreak-blue` and `gpt-5.6-daybreak` all return HTTP 400, and only `gpt-daybreak-blue` returns 200.
+- **Effort: `high` by default.** Use `max` only when the problem is hopelessly hard. **The remaining efforts (low/medium/xhigh) are never used.** The relay script, the proxy and the launcher all default to daybreak-blue/high, so omitting the instruction still follows policy.
+- The per-form syntax (the relay's `GPT-MODEL:`/`GPT-EFFORT:` directive lines, the `gpt-daybreak-blue-high` suffix form for worker and main) is in `references/three-forms.md`.
 
-**Daybreak는 아주 좋은 백엔드 실무자이자 감사관이다.** 백엔드 구현, 코드 리뷰·검증, 교차검증, 2차 의견, 지식 조회에 아낌없이 쓴다.
+## Role boundary — what to delegate, what to keep
 
-**그러나 전체 맥락을 보는 데에는 어려움이 있다.** 그래서:
+**Daybreak is an excellent backend practitioner and auditor.** Spend it freely on backend implementation, code review, verification, cross-checking, second opinions and knowledge lookup.
 
-- **아키텍처와 기획은 Claude가 견고하게 짠다.** 모듈 경계, 인터페이스(타입/시그니처/반환), 데이터 흐름, 에러 정책을 Claude가 먼저 확정하고, 그 확정을 자기완결 명세로 넘긴다. Daybreak에게 구조 설계를 맡기면 국소적으로는 그럴듯하지만 전체와 어긋나는 결과가 나온다.
-- **CI/CD 파이프라인 설계도 Claude 몫이다.** 전체 맥락 그 자체인 작업이라 같은 이유로 위임하지 않는다(개별 스크립트 구현·검토는 위임 가능).
-- **감사(audit) 용도로는 적극 쓴다.** 완성된 백엔드 코드·diff를 붙여 결함 지적, 경계 조건 점검, 2차 의견을 받는 것은 Daybreak가 잘하는 일이다. 단 소견은 입력이지 결론이 아니다 — 채택 판정과 실제 검증(컴파일·테스트)은 Claude가 한다.
+**It does, however, struggle to hold the whole context.** Therefore:
 
-**프론트엔드에는 절대 써서는 안 된다.** 지나칠 정도로 미감이 파멸적이라 사람이 쓸 수 없는 결과물이 나온다. 이 금지는 예외가 없다 — 구판 문서가 허용하던 "확정된 디자인의 렌더 번역" 같은 우회 위임도 폐기되었다. **프론트엔드는 기획도 작업도 전부 Claude가 전담한다.**
+- **Claude nails down architecture and planning.** Module boundaries, interfaces (types, signatures, returns), data flow and error policy are settled by Claude first and handed over as a self-contained specification. Give Daybreak the structural design and you get something locally plausible that contradicts the whole.
+- **CI/CD pipeline design is Claude's too.** It is whole-context work by nature, so it is not delegated for the same reason (implementing or reviewing an individual script can be).
+- **Use it aggressively for audit.** Attaching finished backend code or a diff and asking for defects, boundary conditions and a second opinion is what Daybreak is good at. Its opinion is input, not a conclusion: Claude decides what to adopt and runs the real verification (compile, test).
 
-### 백엔드 전부 위임 패턴
+**Never use it on the frontend.** Its aesthetic sense is catastrophic to a degree that produces output no human can use. This prohibition has no exceptions: the old docs' loophole of "translating a settled design into render code" is discarded as well. **Claude owns the frontend end to end, planning and implementation alike.**
 
-가장 큰 절약이 나오는 운용 형태다.
+### The whole-backend delegation pattern
 
-1. Claude가 아키텍처·인터페이스를 확정하고 백엔드 전체(또는 모듈 단위)를 Daybreak에 위임한다.
-2. Daybreak가 백엔드를 구현하고, 산출물과 함께 **"프론트엔드에 연결할 목록"**(엔드포인트/함수 시그니처/이벤트/설정 키)을 정리해 돌려준다. 위임 프롬프트에서 이 목록을 명시적으로 요구할 것.
-3. Claude가 그 목록을 받아 프론트엔드 기획·구현·배선을 전담하고, 통합 빌드·테스트로 판정한다.
+This is the operating mode with the largest savings.
 
-## 위임 프롬프트
+1. Claude settles architecture and interfaces, then delegates the entire backend (or a module at a time) to Daybreak.
+2. Daybreak implements the backend and returns, alongside the code, a **"list of things to wire into the frontend"** (endpoints, function signatures, events, config keys). Ask for this list explicitly in the delegation prompt.
+3. Claude takes that list, owns frontend planning, implementation and wiring, and passes judgement by running the integration build and tests.
 
-- **자기완결로 쓴다.** 릴레이 형태의 Daybreak는 도구가 없어 저장소를 못 본다. 필요한 기존 코드·스펙·로그를 프롬프트 본문에 붙인다. 붙이지 않은 저장소 사실을 물으면 지어낼 수 있으니, "확인할 수 없으면 확인할 수 없다고 답하라"는 탈출구를 함께 준다.
-- **산출물의 완결 조건을 못박는다.** "이 파일 하나로 컴파일되어야 한다", "연결 목록을 별도 섹션으로" 같은 형태로.
-- **적용·검증은 Claude가 한다.** Daybreak의 자기 신고(컴파일했다/테스트했다)를 게이트로 삼지 않고, Claude가 직접 빌드·테스트를 돌린다.
+## Delegation prompts
 
-## GPT 잡부의 네 형태
+- **Write them self-contained.** In relay form Daybreak has no tools and cannot see the repository, so paste the existing code, spec and logs it needs into the prompt body. Ask about a repository fact you did not paste and it may invent one, so hand it an escape route: "if you cannot verify it, say that you cannot verify it."
+- **Nail down what counts as finished.** For example: "this must compile as a single file", "put the wiring list in its own section".
+- **Claude applies and verifies.** Daybreak's self-report (compiled fine, tests pass) is never the gate; Claude runs the build and tests itself.
 
-어느 형태를 쓰는지는 **GPT가 도구를 직접 쥐어야 하는가**와 **지금 세션이 프록시 base_url을 쓰는가**로 갈린다. 판단표는 `references/three-forms.md`.
+## The four forms of the GPT labourer
 
-1. **오라클 릴레이 (`gpt` 에이전트)**: Daybreak는 도구 없이 추론만 한다. 붙여 준 코드·로그에 대한 소견·교차검증 전용. **어느 세션에서나 즉시** 되고 Claude 게이트가 구조적으로 강제되지만, 맥락을 전부 붙여 줘야 하는 갑갑함이 있다 — 도구가 필요하면 형태 2로.
-2. **직접 워커 (`tools/gpt-agent.ps1`)**: haiku 껍데기 없이, **어느 세션(브릿지 포함)에서든** 자식 `claude -p`를 프록시로 물려 Daybreak가 직접 도구(Read/Edit/Write/Grep/Glob, `-AllowBash` 옵트인)를 쥐게 한다. 일반 세션에서 도구 쥔 GPT가 필요할 때의 **기본 선택**이다(2026-08-20 실측 검증).
-3. **워커 서브에이전트 (`gpt-worker` 에이전트)**: Daybreak 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령을 직접 한다. `ANTHROPIC_BASE_URL`이 프록시를 가리키는 세션 전용. **혼합 세션**(`gpt-cc.ps1 -Main claude`)이면 메인 루프는 Claude가 구독 OAuth 그대로 유지하면서(패스스루 실측 확인, API 키 불필요) 대화 안에서 `Agent(gpt-worker)`로 네이티브 협업이 된다.
-4. **메인 루프 모델 (런처 `gpt-cc.ps1`)**: Claude Code 전체를 Daybreak로 돌린다. **500k 토큰에서 자동압축**하도록 런처가 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`을 설정한다(settings 키 `autoCompactWindow`와 동일 노브; 미인식 모델의 기본 윈도우 폴백을 덮는다).
+Which form applies is decided by two things: **does GPT need to hold tools directly**, and **is this session pointed at the proxy base_url**. The decision table is in `references/three-forms.md`.
 
-**모델 지정 문법은 형태마다 다르다.** 릴레이는 프롬프트 첫 줄의 지시 줄(`GPT-MODEL: gpt-daybreak-blue` + `GPT-EFFORT: high|max`)로, 직접 워커는 `-Effort high|max` 파라미터로, 워커·메인은 effort를 접미사로 붙인 모델 id(`gpt-daybreak-blue-high`, 절망적으로 어려우면 `gpt-daybreak-blue-max`)로 준다. 메인 모델은 `/model`로 전환되지 않는다 — 엔드포인트를 갈아끼우는 일이라 런처로 새 세션을 띄워야 한다.
+1. **Oracle relay (the `gpt` agent)**: Daybreak reasons without tools. For opinions and cross-checks on code and logs you paste in. It works **instantly in any session** and structurally forces the Claude gate, but pasting the entire context is cramped work. If tools are needed, go to form 2.
+2. **Direct worker (`tools/gpt-agent.ps1`)**: no haiku wrapper. **In any session (bridge sessions included)** it attaches a child `claude -p` to the proxy so Daybreak holds the tools itself (Read/Edit/Write/Grep/Glob, with `-AllowBash` as an opt-in). This is the **default choice** when an ordinary session needs a tool-holding GPT (verified in practice on 2026-08-20).
+3. **Worker subagent (the `gpt-worker` agent)**: Daybreak is the subagent's own LLM, so it reads files, edits them and runs commands directly. Only in sessions where `ANTHROPIC_BASE_URL` points at the proxy. In a **mixed session** (`gpt-cc.ps1 -Main claude`) the main loop stays Claude on its subscription OAuth (pass-through confirmed in practice, no API key needed) while `Agent(gpt-worker)` gives native in-conversation collaboration.
+4. **Main loop model (the `gpt-cc.ps1` launcher)**: run all of Claude Code on Daybreak. The launcher sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000` so the session **auto-compacts at 500k tokens** (the same knob as the `autoCompactWindow` setting; it overrides the fallback window used for unrecognised models).
 
-**탐색도 이제 GPT에 시킬 수 있다.** 릴레이는 도구가 없어 탐색을 못 하지만, 직접 워커(형태 2)는 어느 세션에서든 Grep/Glob/Read로 코드베이스를 직접 뒤진다. Claude(Explore)와 분담하면 된다.
+**The syntax for naming the model differs by form.** The relay takes directive lines on the first lines of the prompt (`GPT-MODEL: gpt-daybreak-blue` plus `GPT-EFFORT: high|max`); the direct worker takes an `-Effort high|max` parameter; worker and main take a model id with the effort as a suffix (`gpt-daybreak-blue-high`, or `gpt-daybreak-blue-max` for hopeless problems). The main model cannot be switched with `/model`: that swaps the endpoint, so it needs a new session from the launcher.
 
-## 검증된 함정
+**GPT can search the code now, too.** The relay has no tools and cannot search, but the direct worker (form 2) digs through the codebase itself with Grep/Glob/Read in any session. Split the work with Claude (Explore) as you like.
 
-`references/pitfalls.md`에 모았다. 특히 자주 밟는 것.
+## Proven pitfalls
 
-- 릴레이는 pwsh 7로만 실행한다(WinPS 5.1은 네트워크가 막힌다).
-- **릴레이 출력은 PowerShell `>` 리다이렉션으로 못 잡는다**(`[Console]::Out.Write`가 콘솔 핸들에 직접 쓴다).
-- **에이전트·Workflow 결과의 HTML 엔티티는 표시 계층 현상이다.** 손으로 복원하지 말고 `journal.jsonl`에서 원문을 꺼낸다. Claude 에이전트 결과도 똑같이 이스케이프된다.
-- 프록시는 codex responses에 `max_output_tokens`를 보내면 안 된다(400).
-- 워커·메인 형태는 프록시 세션 전용이다. 일반 세션에서 `gpt-daybreak-blue-*`를 부르면 404 — 일반 세션에서는 직접 워커(`gpt-agent.ps1`)를 쓴다.
-- `claude -p`의 `--allowedTools`는 가변 인자라 뒤따르는 위치 프롬프트를 삼킨다. 과제는 stdin으로 파이프한다(`gpt-agent.ps1`이 처리).
-- **메인 모델은 원격 조종 브릿지로 못 띄운다.** `claude remote-control`이 `ANTHROPIC_BASE_URL`을 검사해 api.anthropic.com이 아니면 거절한다. 폰 조종이 필요하면 일반 브릿지 + 릴레이로 간다.
+Collected in `references/pitfalls.md`. The ones stepped on most often:
+
+- Run the relay under pwsh 7 only (Windows PowerShell 5.1 is blocked at the network layer).
+- **PowerShell `>` redirection does not capture the relay's output** (`[Console]::Out.Write` writes straight to the console handle).
+- **HTML entities in agent and Workflow results are a display-layer artefact.** Do not restore them by hand; pull the original text from `journal.jsonl`. Claude agents' results are escaped exactly the same way.
+- The proxy must not send `max_output_tokens` to codex responses (400).
+- Worker and main forms only work in a proxy session. Calling `gpt-daybreak-blue-*` from an ordinary session gives a 404, so ordinary sessions use the direct worker (`gpt-agent.ps1`).
+- `--allowedTools` in `claude -p` takes a variable number of arguments and swallows the positional prompt that follows. Pipe the task in over stdin (`gpt-agent.ps1` handles this).
+- **The main model cannot be launched through the remote control bridge.** `claude remote-control` inspects `ANTHROPIC_BASE_URL` and refuses anything that is not api.anthropic.com. Driving from a phone means the ordinary bridge plus the relay.
