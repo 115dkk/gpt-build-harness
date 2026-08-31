@@ -1,100 +1,100 @@
-# 함정 (검증된 것)
+# Pitfalls (the verified ones)
 
-GPT 잡부를 붙여 굴리며 실제로 밟은 것만 근거와 함께 적었다. SKILL.md 요약의 원본이다.
+Only what was actually stepped on while running a GPT labourer, with the evidence. This is the source that the SKILL.md summary condenses.
 
-## 릴레이 형태
+## The relay form
 
-**릴레이는 PowerShell 도구(pwsh 7)로만 실행한다.**
-Bash 도구가 부르는 `powershell.exe`는 Windows PowerShell 5.1이고, 그 네트워크 스택은 이 머신에서 chatgpt.com에 막혀 무한 대기한다. `gpt-relay.ps1`은 pwsh 7 전용인 `-SkipHttpErrorCheck`도 쓴다. `gpt` 에이전트 정의가 PowerShell 도구를 강제하는 이유다.
+**Run the relay from the PowerShell tool (pwsh 7) only.**
+The `powershell.exe` that the Bash tool invokes is Windows PowerShell 5.1, and on this machine its network stack is blocked from chatgpt.com and hangs forever. `gpt-relay.ps1` also uses `-SkipHttpErrorCheck`, which is pwsh 7 only. That is why the `gpt` agent definition forces the PowerShell tool.
 
-**릴레이 출력은 PowerShell `>` 리다이렉션으로 잡히지 않는다.**
-릴레이가 답을 `[Console]::Out.Write`로 콘솔 핸들에 직접 쓰기 때문에 PowerShell 성공 스트림을 거치지 않는다. `... > out.txt`를 걸면 **빈 파일**이 남고 답은 사라진다. 배경 실행의 태스크 출력 파일에는 제대로 담기므로 그쪽을 읽는다. 굳이 파일로 받아야 하면 자식 프로세스로 띄워(`pwsh -File ...`) 프로세스 수준에서 리다이렉트한다.
+**PowerShell `>` redirection does not capture the relay's output.**
+The relay writes its answer straight to the console handle with `[Console]::Out.Write`, so it never passes through the PowerShell success stream. Add `... > out.txt` and you are left with an **empty file** and the answer is gone. The task output file of a background run does capture it properly, so read that instead. If you really need it in a file, start it as a child process (`pwsh -File ...`) and redirect at the process level.
 
-**릴레이는 도구 없는 오라클이다.**
-GPT는 파일을 못 읽고 못 쓰고 아무것도 실행하지 못한다. 맥락(기존 코드, 스펙, 로그)을 프롬프트 본문에 자기완결로 붙여야 한다. 붙이지 않은 저장소 사실을 물으면 지어내기도 하니 "확인할 수 없으면 확인할 수 없다고 답하라"는 탈출구를 준다. 반환물의 적용·빌드·판정은 Claude가 한다.
+**The relay is a tool-less oracle.**
+GPT cannot read a file, cannot write one, cannot run anything. The context (existing code, the spec, logs) has to be pasted into the prompt body, self-contained. Ask it about a repository fact you did not paste and it may invent one, so give it the escape route "if you cannot verify it, say that you cannot verify it". Applying, building and judging the returned work is Claude's job.
 
-**모델 슬러그는 `gpt-daybreak-blue`다(2026-08-19 실측).**
-버전 접두사를 붙인 변형(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak`, `gpt-5.6-sol-daybreak-blue` 등)은 codex responses 백엔드가 전부 HTTP 400으로 거부한다. 릴레이·프록시·런처의 기본값이 이미 이 슬러그라 생략하면 안전하다.
+**The model slug is `gpt-daybreak-blue` (measured 2026-08-19).**
+Variants with a version prefix (`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak`, `gpt-5.6-sol-daybreak-blue` and so on) are all rejected by the codex responses backend with HTTP 400. The relay, the proxy and the launcher already default to this slug, so omitting it is safe.
 
-## 에이전트·Workflow 결과 전달
+## Getting results back from agents and Workflows
 
-**HTML 엔티티 이스케이프는 표시 계층 현상이다. 손으로 복원하지 말 것.**
-서브에이전트나 Workflow의 결과가 알림·결과 텍스트로 올 때 코드의 `<` `>` `&`가 `&lt;` `&gt;` `&amp;`로 바뀐다. 두 가지를 실측으로 바로잡았다.
+**HTML entity escaping is a display-layer artefact. Do not restore it by hand.**
+When a subagent's or Workflow's result arrives as notification or result text, `<` `>` `&` in code turn into `&lt;` `&gt;` `&amp;`. Two things were corrected by measurement.
 
-- **GPT 릴레이 전용이 아니다.** 같은 Workflow에 넣은 **Claude 에이전트의 반환값도** `&lt;=`로 깨져 왔다. 원인은 모델이 아니라 전달 계층이다.
-- **`journal.jsonl`에는 원문이 그대로 있다.** 저널에서 꺼낸 코드는 엔티티가 0개였고 그대로 컴파일돼 테스트를 통과했다.
+- **It is not specific to the GPT relay.** In the same Workflow, **a Claude agent's return value** came back broken as `&lt;=` too. The cause is the delivery layer, not the model.
+- **`journal.jsonl` holds the original text.** Code pulled from the journal had zero entities and compiled and passed tests as it was.
 
-그러니 복원 절차를 만들지 말고 **저널에서 읽는다.** 위치는 `<transcriptDir>/journal.jsonl`이고, `type == "result"`인 줄의 `result` 필드가 에이전트의 실제 반환값이다. 큰 코드를 육안으로 복원하는 것은 위험하고, 애초에 필요하지도 않다.
+So do not build a restoration procedure; **read from the journal**. It is at `<transcriptDir>/journal.jsonl`, and the `result` field of the line where `type == "result"` is the agent's actual return value. Restoring a large body of code by eye is risky, and it is not necessary in the first place.
 
-## 프록시 / 워커 / 메인 형태
+## The proxy, worker and main forms
 
-**워커·메인 형태는 프록시 세션 전용이다.**
-`gpt-worker` 서브에이전트나 메인 모델 GPT는 `ANTHROPIC_BASE_URL`이 `gpt-proxy.mjs`를 가리켜야 작동한다. 일반 Claude 세션에서 `gpt-daybreak-blue-*` 모델을 부르면 진짜 Anthropic으로 가 즉시 죽는다(2026-08-20 실측: "model may not exist" API 오류로 에이전트 종료). '하네스를 굴리는 세션'과 'GPT가 도는 세션'은 다르다. 일반 세션에서 도구 쥔 GPT가 필요하면 `gpt-agent.ps1`(자식 claude 직접 워커)로 우회한다.
+**The worker and main forms are for proxy sessions only.**
+The `gpt-worker` subagent and a GPT main model both need `ANTHROPIC_BASE_URL` pointing at `gpt-proxy.mjs`. Call a `gpt-daybreak-blue-*` model from an ordinary Claude session and it goes to the real Anthropic and dies at once (measured 2026-08-20: the agent terminated with a "model may not exist" API error). The session that drives the harness and the session that GPT runs in are two different things. When an ordinary session needs a tool-holding GPT, go around it with `gpt-agent.ps1` (the direct worker built on a child claude).
 
-**구독 OAuth는 커스텀 base URL을 통과한다(2026-08-20 실측).**
-Claude Code는 `ANTHROPIC_BASE_URL`이 프록시여도 구독 OAuth bearer를 그대로 보내고, 프록시가 이를 api.anthropic.com에 그대로 넘겨 200을 받는다. 그래서 혼합 세션(`gpt-cc.ps1 -Main claude`)에 API 키가 필요 없다. 단 `ANTHROPIC_AUTH_TOKEN`을 세팅하면 OAuth를 **덮어써** 패스스루가 401 난다. 혼합 모드에서는 절대 세팅하지 말 것(GPT 메인 모드의 더미 토큰은 그대로 둔다).
+**Subscription OAuth survives a custom base URL (measured 2026-08-20).**
+Claude Code sends its subscription OAuth bearer even when `ANTHROPIC_BASE_URL` is the proxy, and the proxy hands it to api.anthropic.com unchanged and gets a 200 back. That is why a mixed session (`gpt-cc.ps1 -Main claude`) needs no API key. Setting `ANTHROPIC_AUTH_TOKEN`, however, **overrides** the OAuth and makes the pass-through return 401. Never set it in mixed mode (leave the dummy token of GPT main mode alone).
 
-**`claude -p`의 `--allowedTools`는 가변 인자라 위치 프롬프트를 삼킨다.**
-`claude -p --allowedTools "Read Write" "과제..."`는 과제까지 도구 목록으로 먹혀 "Input must be provided either through stdin or as a prompt argument"로 죽는다(실측). 과제는 stdin으로 파이프한다(`"과제" | claude -p --allowedTools "Read,Write"`). `gpt-agent.ps1`이 이 방식을 쓴다.
+**`--allowedTools` in `claude -p` takes a variable number of arguments and swallows the prompt.**
+`claude -p --allowedTools "Read Write" "task..."` eats the task as part of the tool list and dies with "Input must be provided either through stdin or as a prompt argument" (measured). Pipe the task in over stdin (`"task" | claude -p --allowedTools "Read,Write"`). `gpt-agent.ps1` does it this way.
 
-**미인식 모델 경고는 무해하다.**
-`gpt-daybreak-blue-*`로 자식 claude를 띄우면 "not a model this version recognizes" 경고가 찍힌다. 윈도우는 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`/`CLAUDE_CODE_MAX_CONTEXT_TOKENS`로 고정하면 되고, 경고가 제안하는 `modelOverrides` 설정은 '알려진 Anthropic ID를 프로바이더 ID로 잇는' 매핑(관리형 설정용)이라 이 용도에 맞지 않는다.
+**The unrecognised-model warning is harmless.**
+Starting a child claude on `gpt-daybreak-blue-*` prints a "not a model this version recognizes" warning. Pin the window with `CLAUDE_CODE_AUTO_COMPACT_WINDOW`/`CLAUDE_CODE_MAX_CONTEXT_TOKENS`; the `modelOverrides` setting the warning suggests is a mapping from a known Anthropic ID to a provider ID (for managed settings) and does not fit this use.
 
-**워커의 자기 보고와 산출물은 별개다(실측 표본).**
-혼합 세션 검증에서 gpt-worker가 파일에는 정확한 결과("ykseulb")를 쓰고 보고 문장에는 오탈자("ykseulba")를 냈다. 판정은 항상 산출물을 직접 열어 한다. 채팅 보고를 게이트로 삼지 않는다.
+**A worker's self-report and its output are two different things (measured sample).**
+While verifying a mixed session, gpt-worker wrote the correct result into the file ("ykseulb") and put a typo in its report sentence ("ykseulba"). Always judge by opening the output yourself. A chat report is never the gate.
 
-**프록시의 도구 호출 변환은 작동한다(확인함).**
-프록시를 띄워 Anthropic Messages API 형식으로 직접 요청했을 때, 평문 요청은 200으로 정상 응답했고 도구 정의를 준 요청은 `stop_reason: "tool_use"`와 함께 올바른 인자로 도구 호출을 돌려줬다. 프록시 세션에서 GPT가 실제로 코드를 뒤지고 고칠 수 있다는 뜻이다.
+**The proxy's tool-call translation works (confirmed).**
+Driving the proxy with direct requests in Anthropic Messages API format, a plain request answered 200 and a request carrying tool definitions returned a tool call with the right arguments and `stop_reason: "tool_use"`. That means GPT can genuinely dig through code and edit it in a proxy session.
 
-**codex responses는 `max_output_tokens`를 거부한다.**
-프록시가 Anthropic `max_tokens`를 그대로 넘기면 HTTP 400 `Unsupported parameter`가 난다. 전달하지 않는다(codex가 자체 관리).
+**codex responses rejects `max_output_tokens`.**
+Passing the Anthropic `max_tokens` straight through gets HTTP 400 `Unsupported parameter`. Do not forward it (codex manages it itself).
 
-**자동 캐시는 `session_id` 헤더에 묶인다.**
-같은 대용량 접두라도 session_id가 매 요청 랜덤이면 캐시 히트가 0이라 매 턴 시스템 프롬프트를 풀차지한다. 프록시가 대화별 안정 session_id를 써야 히트가 걸린다.
+**Automatic caching is tied to the `session_id` header.**
+Even with the same large prefix, a session_id randomised per request means zero cache hits and a full charge for the system prompt every turn. The proxy has to use a stable per-conversation session_id for hits to land.
 
-**메인 세션의 자동압축 500k는 런처가 건다.**
-`gpt-daybreak-blue-*`는 Claude Code가 인식하지 못하는 슬러그라, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`(또는 settings 키 `autoCompactWindow`)를 명시하지 않으면 미인식 모델용 기본 윈도우로 떨어진다. `gpt-cc.ps1`이 미설정일 때 500000을 세팅한다.
+**The 500k auto-compact of a main session is set by the launcher.**
+`gpt-daybreak-blue-*` is a slug Claude Code does not recognise, so without an explicit `CLAUDE_CODE_AUTO_COMPACT_WINDOW` (or the `autoCompactWindow` setting) the session falls back to the default window for unrecognised models. `gpt-cc.ps1` sets 500000 when it is unset.
 
-## 실행 환경
+## The execution environment
 
-**`--dangerously-skip-permissions`는 auto mode 분류기가 차단한다.**
-부모 Claude 세션 안에서 자식 `claude`를 위험 모드로 띄우려는 시도를 거부한다.
+**`--dangerously-skip-permissions` is blocked by the auto mode classifier.**
+It refuses the attempt to start a child `claude` in dangerous mode from inside a parent Claude session.
 
-**자식 `claude`가 cwd를 프로젝트 루트로 되돌린다.**
-`Set-Location`으로 폴더를 바꿔도 자식이 cwd를 부모 워크트리 루트로 리셋한다. 파일은 절대경로로 지정한다.
+**A child `claude` resets cwd to the project root.**
+Even after `Set-Location`, the child resets cwd to the parent worktree root. Address files by absolute path.
 
-**`claude -p`가 stdin을 3초 기다린다.**
-`$null | & claude -p ...`로 빈 stdin을 파이프하면 기다리지 않는다.
+**`claude -p` waits three seconds on stdin.**
+Pipe an empty stdin with `$null | & claude -p ...` and it does not wait.
 
-**cmd에서 인용 경로 끝의 역슬래시가 따옴표를 먹는다.**
-`/Fo:"...\obj\"`처럼 역슬래시로 끝나는 인용 경로는 닫는 따옴표를 이스케이프해 명령줄 전체가 깨진다(cl이 `D8003 소스 파일 이름이 없습니다`로 죽는다). 해당 디렉터리로 이동해 상대 경로를 쓰거나 끝 역슬래시를 뺀다.
+**In cmd, a backslash at the end of a quoted path eats the quote.**
+A quoted path ending in a backslash, like `/Fo:"...\obj\"`, escapes the closing quote and breaks the whole command line (cl dies with `D8003 missing source filename`). Move into the directory and use a relative path, or drop the trailing backslash.
 
-**Bash 도구의 heredoc은 작은따옴표를 품은 코드에서 깨진다.**
-`&'static` 같은 조각이 든 heredoc을 Bash 도구로 쓰면 셸 인용 파싱이 어긋나 `unexpected EOF while looking for matching` 로 죽는다. 그런 파일은 Write 도구로 쓴다(Rust 수명 표기, PowerShell 리터럴 문자열 등이 자주 걸린다).
+**The Bash tool's heredoc breaks on code containing single quotes.**
+Writing a heredoc that contains a fragment such as `&'static` through the Bash tool throws the shell's quote parsing off and dies with `unexpected EOF while looking for matching`. Write those files with the Write tool (Rust lifetime notation and PowerShell literal strings hit this often).
 
-**Bash 도구의 cwd는 믿지 않는다.**
-이전 호출의 `cd` 가 그대로 살아 있기도 하고, 도구가 프로젝트 루트로 되돌리기도 한다. 어느 쪽이든 경로는 항상 절대경로로 쓴다.
+**Do not trust the Bash tool's cwd.**
+A `cd` from an earlier call sometimes survives, and sometimes the tool puts you back at the project root. Either way, always write paths as absolute.
 
-## 배포 (토이에서 얻은 것)
+## Distribution (learned from the toy)
 
-**토이(공개 대상)와 스킬(내부 인프라)을 같은 브랜치에 커밋하지 않는다.**
-내부 GPT 도구가 공개 repo에 섞이면 auto-mode 분류기가 push를 차단한다.
+**Do not commit the toy (public) and the skill (internal infrastructure) on the same branch.**
+Internal GPT tooling mixed into a public repo makes the auto-mode classifier block the push.
 
-**create-tauri-app이 Windows 사용자명을 identifier에 박는다.**
-`com.<한글 사용자명>.…`이 되어 `generate_context!`가 non-ASCII identifier를 거부하기도 한다. ASCII reverse-DNS로 교정한다.
+**create-tauri-app bakes the Windows username into the identifier.**
+It becomes `com.<Korean username>.…`, and `generate_context!` sometimes rejects a non-ASCII identifier. Fix it to an ASCII reverse-DNS name.
 
-## 실전, 백엔드 전부 위임 (2026-08-30, Tauri 2 + Rust)
+## In practice: delegating the whole backend (2026-08-30, Tauri 2 + Rust)
 
-안드로이드 앱의 코어(도메인·슬롯 계산·저장소·PNG 렌더·내보내기)를 `gpt-agent.ps1` 직접 워커에 통째로 맡기고, 화면(Svelte)은 Claude가 전담한 첫 실전에서 얻은 것. 결과물은 릴리즈까지 갔고 코어 테스트 56개가 붙었다.
+What came out of the first real run where the core of an Android app (domain, slot computation, storage, PNG rendering, export) went to the `gpt-agent.ps1` direct worker in one piece while Claude owned the screens (Svelte). The result shipped as a release with 56 core tests attached.
 
-**검색 권한을 함께 준다.**
-WebSearch·WebFetch와 검색 MCP를 워커의 허용 도구에 넣으면 모르는 크레이트 API를 찍는 환각이 줄어든다. 확인하지 못한 것을 지어내게 두는 것보다, 워커가 직접 문서를 확인하게 하는 편이 싸다. 대신 Bash를 열어 줄지는 의식적으로 정한다(무감독 셸이다).
+**Give it search permission too.**
+Putting WebSearch, WebFetch and a search MCP in the worker's allowed tools cuts down hallucinated guesses at crate APIs it does not know. Letting the worker check the documentation itself is cheaper than letting it invent what it could not verify. Whether to open up Bash is a separate decision to make deliberately (it is an unsupervised shell).
 
-**워커가 서브에이전트와 워크트리를 스스로 벌인다.**
-직접 워커는 자식 `claude` 세션이라 자기 판단으로 서브에이전트를 띄우고, 별도 워크트리에 산출물을 만들고, 다른 세션에 메시지까지 보낸다(실측). **완료 보고가 아니라 작업 트리를 직접 확인**하고, 메인 트리 밖에 만들어진 산출물은 복사해 온다. 위임 과제에 산출물의 절대경로를 못박아 두면 흩어짐이 줄어든다.
+**The worker starts subagents and worktrees on its own.**
+The direct worker is a child `claude` session, so on its own judgement it spawns subagents, produces output in a separate worktree, and even sends messages to other sessions (measured). **Check the work tree yourself rather than the completion report**, and copy back anything produced outside the main tree. Nailing the absolute output paths into the delegated task reduces the scatter.
 
-**게이트는 언제나 Claude가 다시 돌린다.**
-워커가 통과했다고 보고해도 포맷·린트·테스트를 Claude가 직접 돌린다. 실제로 워커 산출물에서 `cargo fmt --check` 가 깨져 있었다(커밋 전 `cargo fmt --all` 로 교정). 컴파일과 테스트가 도는 것과 신고가 정직한 것은 별개다.
+**Claude always re-runs the gates.**
+Even when the worker reports a pass, Claude runs format, lint and tests itself. In practice `cargo fmt --check` was broken in the worker's output (fixed with `cargo fmt --all` before the commit). Compiling and testing successfully and reporting honestly are two different things.
 
-**구현과 감사는 형태를 바꿔 두 번 본다.**
-완성된 코어를 이번에는 릴레이(도구 없는 오라클)에 붙여 감사시키자 실제 결함을 짚었다. 파일을 새로 만드는 대목에서 id 충돌 확인과 저장이 같은 잠금 안에 있지 않아 동시 생성 시 경쟁이 가능했다. 같은 모델이라도 형태를 바꾸면 다른 시야가 나온다. 구현은 워커, 감사는 릴레이가 싸다.
+**Implement and audit in two different forms.**
+Handing the finished core to the relay (the tool-less oracle) for an audit turned up a real defect: where a new file is created, the id-collision check and the save were not inside the same lock, so concurrent creation could race. The same model in a different form gives a different field of view. Implementation by the worker, audit by the relay, is the cheap split.

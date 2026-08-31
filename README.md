@@ -13,15 +13,17 @@ GPT를 **네 형태**로 부린다. 어느 형태를 쓸지는 *GPT가 도구를
 | 워커 서브에이전트 | Read/Write/Edit/Bash/… | 프록시 세션(혼합 세션 포함) | 네이티브 `Agent()` UX로 병렬·백그라운드 협업 |
 | 메인 루프 모델 | Claude Code 전체 도구 | 프록시 세션 | 세션 전체를 GPT로 굴리는 실험 |
 
-방법론은 [SKILL.md](SKILL.md)와 [references/](references/)에 있다.
+방법론은 [SKILL.md](SKILL.md)와 [references/](references/)에 있다. 한국어로 읽으려면 [SKILL_ko.md](SKILL_ko.md)와 각 문서의 `_ko` 짝을 본다.
 
-- 형태 고르기: [references/three-forms.md](references/three-forms.md)
-- 검증된 함정: [references/pitfalls.md](references/pitfalls.md)
-- 셋업 개요: [references/setup.md](references/setup.md)
+- 형태 고르기: [three-forms.md](references/three-forms.md) ([한국어](references/three-forms_ko.md))
+- 검증된 함정: [pitfalls.md](references/pitfalls.md) ([한국어](references/pitfalls_ko.md))
+- 셋업 개요: [setup.md](references/setup.md) ([한국어](references/setup_ko.md))
 
 ## 문서 언어
 
-**정본은 영어 [SKILL.md](SKILL.md)다.** 스킬 문서는 매 세션 모델의 맥락에 올라가는데 한국어는 같은 내용에 토큰이 훨씬 많이 들어, 설치되고 배포되는 파일을 영어로 둔다. 한국어로 읽을 사람을 위해 같은 내용을 [SKILL_ko.md](SKILL_ko.md)로 저장소에 유지한다(설치·배포에는 들어가지 않는다). `references/`는 필요할 때만 펼쳐 보는 문서라 한국어 그대로 둔다.
+**모델이 읽는 문서는 영어가 정본이다.** 스킬 문서와 에이전트 정의는 세션마다 모델의 맥락에 올라가는데, 한국어는 같은 내용에 토큰이 훨씬 많이 든다. 그래서 설치·배포되는 `SKILL.md`, `references/*.md`, `tools/agents/*.md`를 영어로 두었다.
+
+한국어 역본은 사람이 읽으라고 저장소에 나란히 남긴다. `SKILL_ko.md`, `references/*_ko.md`, 그리고 에이전트 정의의 한국어 사본 [agents/](agents/)가 그것이고, 설치·배포에는 들어가지 않는다. 이 README는 사람이 읽는 문서라 한국어가 정본이다. `references/legacy/`는 폐기한 구판 기록이라 손대지 않고 한국어 그대로 둔다.
 
 ## 방침 (2026-08-19 개정)
 

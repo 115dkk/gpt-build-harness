@@ -1,6 +1,6 @@
 # GPT 빌드 하네스 (Daybreak Blue)
 
-> `SKILL.md`의 한국어 역본이다. 설치되는 정본은 영어 `SKILL.md`이고(토큰이 훨씬 덜 든다), 이 파일은 읽기용으로 저장소에만 둔다. 스킬 메타데이터(frontmatter)는 정본에 있다.
+> 영어 정본 `SKILL.md`의 한국어 역본이다. Claude가 읽는 문서는 전부 영어를 정본으로 두고(토큰이 훨씬 덜 든다), 한국어 역본은 읽기용으로 저장소에만 둔다. 스킬 메타데이터(frontmatter)는 정본에 있다. `references/`도 마찬가지로 영어가 정본이고 한국어는 `*_ko.md`로 나란히 둔다.
 
 Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡부로 붙여 구현·검증 노동을 위임하고 Claude는 아키텍처·기획·적용·판정을 쥐는 방식이다. 호출은 ChatGPT **구독 쿼터**를 쓰므로 Claude 토큰을 아낀다.
 
@@ -14,7 +14,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 
 - **슬러그는 `gpt-daybreak-blue`, 버전 접두사가 없다.** 2026-08-19 codex responses 백엔드 실측으로 확인했다(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak` 등 변형은 전부 HTTP 400, `gpt-daybreak-blue`만 200).
 - **effort는 `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** 릴레이 스크립트·프록시·런처의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
-- 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 워커·메인의 `gpt-daybreak-blue-high` 접미사형)은 `references/three-forms.md`.
+- 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 워커·메인의 `gpt-daybreak-blue-high` 접미사형)은 `references/three-forms_ko.md`.
 
 ## 역할 경계 (무엇을 맡기고 무엇을 쥐나)
 
@@ -44,7 +44,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 
 ## GPT 잡부의 네 형태
 
-어느 형태를 쓸지는 두 가지가 정한다. **GPT가 도구를 직접 쥐어야 하는가**, 그리고 **지금 세션이 프록시 base_url을 쓰는가**. 판단표는 `references/three-forms.md`.
+어느 형태를 쓸지는 두 가지가 정한다. **GPT가 도구를 직접 쥐어야 하는가**, 그리고 **지금 세션이 프록시 base_url을 쓰는가**. 판단표는 `references/three-forms_ko.md`.
 
 1. **오라클 릴레이 (`gpt` 에이전트)**: Daybreak는 도구 없이 추론만 한다. 붙여 준 코드·로그에 대한 소견·교차검증 전용이다. **어느 세션에서나 즉시** 되고 Claude 게이트를 구조적으로 강제하지만, 맥락을 전부 붙여 줘야 하는 갑갑함이 있다. 도구가 필요하면 형태 2로 간다.
 2. **직접 워커 (`tools/gpt-agent.ps1`)**: haiku 껍데기 없이, **어느 세션(브릿지 포함)에서든** 자식 `claude -p`를 프록시로 물려 Daybreak가 직접 도구(Read/Edit/Write/Grep/Glob, `-AllowBash` 옵트인)를 쥐게 한다. 일반 세션에서 도구 쥔 GPT가 필요할 때의 **기본 선택**이다(2026-08-20 실측 검증).
@@ -57,7 +57,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 
 ## 검증된 함정
 
-`references/pitfalls.md`에 모았다. 특히 자주 밟는 것.
+`references/pitfalls_ko.md`에 모았다. 특히 자주 밟는 것.
 
 - 릴레이는 pwsh 7로만 실행한다(WinPS 5.1은 네트워크가 막힌다).
 - **릴레이 출력은 PowerShell `>` 리다이렉션으로 못 잡는다**(`[Console]::Out.Write`가 콘솔 핸들에 직접 쓴다).
