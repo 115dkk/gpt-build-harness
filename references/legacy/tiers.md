@@ -1,5 +1,7 @@
 # 모델·effort 고르기 (실측)
 
+> **구판 문서 — 보존용.** 2026-08-19 개정 이전의 내용이다. 호출 모델이 Daybreak Blue 하나로 정리되면서 luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리, 그리고 프론트엔드 렌더 번역 예외는 모두 폐기되었다. 현행 정본은 [SKILL.md](../../SKILL.md)와 `references/three-forms.md`·`references/pitfalls.md`·`references/setup.md`다. 이 문서는 당시 실험 기록으로만 남긴다.
+
 2026-07-25 배터리 결과다. 호출은 모두 `gpt-relay.ps1`을 pwsh 7로 직접 실행했다. 원 데이터와 실험 설계는 `measurements.md`.
 
 ## 한 줄 결론

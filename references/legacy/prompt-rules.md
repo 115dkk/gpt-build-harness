@@ -1,5 +1,7 @@
 # 위임 프롬프트 규칙
 
+> **구판 문서 — 보존용.** 2026-08-19 개정 이전의 내용이다. 호출 모델이 Daybreak Blue 하나로 정리되면서 luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리, 그리고 프론트엔드 렌더 번역 예외는 모두 폐기되었다. 현행 정본은 [SKILL.md](../../SKILL.md)와 `references/three-forms.md`·`references/pitfalls.md`·`references/setup.md`다. 이 문서는 당시 실험 기록으로만 남긴다.
+
 모델 선택보다 이 규칙이 결과를 더 크게 가른다. 실측에서 **같은 모델·같은 effort가 프롬프트 한 문단 차이로 완전히 정직해지거나 통째로 지어냈다.** 근거는 각 항목에 붙였고, 원 데이터는 `measurements.md`.
 
 ## 규칙 1 — 탈출구를 준다

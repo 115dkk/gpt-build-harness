@@ -1,5 +1,7 @@
 # 하네스 형성 로그
 
+> **구판 문서 — 보존용.** 2026-08-19 개정 이전의 내용이다. 호출 모델이 Daybreak Blue 하나로 정리되면서 luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리, 그리고 프론트엔드 렌더 번역 예외는 모두 폐기되었다. 현행 정본은 [SKILL.md](../../SKILL.md)와 `references/three-forms.md`·`references/pitfalls.md`·`references/setup.md`다. 이 문서는 당시 실험 기록으로만 남긴다.
+
 토이: EqualizerAPO-XT의 Qt Editor를 Tauri 웹뷰로 포팅. **목적은 결과물이 아니라 하네스 스킬을 벼리는 것.** 절대 실사용 안 함. 격리 브랜치에서만 굴린다.
 
 시간순으로 쌓는다. 교훈이 여물면 `pitfalls.md` / `three-forms.md` / `orchestration.md`로 승격한다.
