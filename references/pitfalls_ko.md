@@ -35,7 +35,7 @@ GPT는 파일을 못 읽고 못 쓰고 아무것도 실행하지 못한다. 맥�
 Claude Code는 `ANTHROPIC_BASE_URL`이 프록시여도 구독 OAuth bearer를 그대로 보내고, 프록시가 이를 api.anthropic.com에 그대로 넘겨 200을 받는다. 그래서 혼합 세션(`gpt-cc.ps1 -Main claude`)에 API 키가 필요 없다. 단 `ANTHROPIC_AUTH_TOKEN`을 세팅하면 OAuth를 **덮어써** 패스스루가 401 난다. 혼합 모드에서는 절대 세팅하지 말 것(GPT 메인 모드의 더미 토큰은 그대로 둔다).
 
 **`claude -p`의 `--allowedTools`는 가변 인자라 위치 프롬프트를 삼킨다.**
-`claude -p --allowedTools "Read Write" "과제..."`는 과제까지 도구 목록으로 먹혀 "Input must be provided either through stdin or as a prompt argument"로 죽는다(실측). 과제는 stdin으로 파이프한다(`"과제" | claude -p --allowedTools "Read,Write"`). `gpt-agent.ps1`이 이 방식을 쓴다.
+`claude -p --allowedTools "Read Write" "과제..."`는 과제까지 도구 목록으로 먹혀 "Input must be provided either through stdin or as a prompt argument"로 죽는다(실측). 과제는 stdin으로 파이프한다(`"과제" | claude -p --allowedTools "Read,Write"`). 같은 이유로 다른 `claude` 인자도 모두 `--allowedTools` 앞에 와야 한다. `gpt-agent.ps1`이 둘 다 처리한다(패스스루 인자가 2026-09-04까지는 소리 없이 삼켜졌다).
 
 **미인식 모델 경고는 무해하다.**
 `gpt-daybreak-blue-*`로 자식 claude를 띄우면 "not a model this version recognizes" 경고가 찍힌다. 윈도우는 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`/`CLAUDE_CODE_MAX_CONTEXT_TOKENS`로 고정하면 되고, 경고가 제안하는 `modelOverrides` 설정은 '알려진 Anthropic ID를 프로바이더 ID로 잇는' 매핑(관리형 설정용)이라 이 용도에 맞지 않는다.
@@ -87,8 +87,8 @@ Claude Code는 `ANTHROPIC_BASE_URL`이 프록시여도 구독 OAuth bearer를 �
 
 안드로이드 앱의 코어(도메인·슬롯 계산·저장소·PNG 렌더·내보내기)를 `gpt-agent.ps1` 직접 워커에 통째로 맡기고, 화면(Svelte)은 Claude가 전담한 첫 실전에서 얻은 것. 결과물은 릴리즈까지 갔고 코어 테스트 56개가 붙었다.
 
-**검색 권한을 함께 준다.**
-WebSearch·WebFetch와 검색 MCP를 워커의 허용 도구에 넣으면 모르는 크레이트 API를 찍는 환각이 줄어든다. 확인하지 못한 것을 지어내게 두는 것보다, 워커가 직접 문서를 확인하게 하는 편이 싸다. 대신 Bash를 열어 줄지는 의식적으로 정한다(무감독 셸이다).
+**검색 권한을 함께 준다(v0.4.0부터 기본).**
+WebSearch·WebFetch와 검색 MCP를 워커의 허용 도구에 넣으면 모르는 크레이트 API를 찍는 환각이 줄어든다. 확인하지 못한 것을 지어내게 두는 것보다, 워커가 직접 문서를 확인하게 하는 편이 싸다. WebSearch와 WebFetch는 이제 `gpt-agent.ps1`의 기본 목록에 있고, 검색 MCP 도구는 `-Tools`나 `GPT_AGENT_EXTRA_TOOLS`로 넣는다. 대신 Bash를 열어 줄지는 의식적으로 정한다(무감독 셸이다).
 
 **워커가 서브에이전트와 워크트리를 스스로 벌인다.**
 직접 워커는 자식 `claude` 세션이라 자기 판단으로 서브에이전트를 띄우고, 별도 워크트리에 산출물을 만들고, 다른 세션에 메시지까지 보낸다(실측). **완료 보고가 아니라 작업 트리를 직접 확인**하고, 메인 트리 밖에 만들어진 산출물은 복사해 온다. 위임 과제에 산출물의 절대경로를 못박아 두면 흩어짐이 줄어든다.
@@ -98,3 +98,17 @@ WebSearch·WebFetch와 검색 MCP를 워커의 허용 도구에 넣으면 모르
 
 **구현과 감사는 형태를 바꿔 두 번 본다.**
 완성된 코어를 이번에는 릴레이(도구 없는 오라클)에 붙여 감사시키자 실제 결함을 짚었다. 파일을 새로 만드는 대목에서 id 충돌 확인과 저장이 같은 잠금 안에 있지 않아 동시 생성 시 경쟁이 가능했다. 같은 모델이라도 형태를 바꾸면 다른 시야가 나온다. 구현은 워커, 감사는 릴레이가 싸다.
+
+## 프록시를 거치는 웹 검색·MCP·함수 호출 (2026-09-04)
+
+**Claude Code의 WebSearch는 서버 쪽 도구이고, codex는 Anthropic의 그 도구를 실행하지 못한다.**
+예전 프록시는 이 도구를 버렸기 때문에 워커의 WebSearch는 아무것도 돌려주지 않았다. v0.4.0부터 프록시가 `web_search` 서버 도구를 codex 웹 검색으로 옮기고(도메인 필터와 강제 도구 선택 포함), Claude Code가 파싱하는 `server_tool_use`·`web_search_tool_result` 블록을 답변의 URL 인용에서 다시 만든다. 끝에서 끝까지 실측했다. 검색을 시킨 워커가 링크 네 개를 받아 왔다. WebFetch에는 애초에 이런 매핑이 필요 없다. 로컬에서 받아 패스스루 모델로 요약한다.
+
+**함수 도구는 `strict: false`로 보낸다.**
+codex 기본값에서는 모델이 스키마의 모든 속성을 필수로 여겨 선택 속성까지 값을 지어냈다. 검색 도구에 최근성 필터와 날짜 필터를 동시에 넣어 일곱 번 연속 거부당했고, Read에는 `pages: ""`를 넣었다. 엄격 모드를 끄자 같은 모델이 뜻한 인자만 보낸다. 프록시가 모든 함수 도구에 이 값을 붙인다.
+
+**64자를 넘는 함수 이름은 codex가 거부한다.**
+MCP 도구 이름(`mcp__<server>__<tool>`)은 그 길이를 넘기도 한다. 프록시가 들어갈 때 해시 접미사로 줄이고 나올 때 원래 이름으로 되돌리므로, 긴 MCP 이름도 그대로 쓴다.
+
+**claude.ai 커넥터의 도구는 늦게 나타난다.**
+헤드리스 `claude -p`에서도 커넥터는 로드되지만, 그 도구는 커넥터가 연결된 뒤에야 도구 목록에 나타나고 그때까지 몇 턴이 걸리기도 한다. 한 턴짜리 프로브는 도구가 없다고 보고했고, 네 턴짜리 실행은 그 도구를 써서 결과 세 개를 받았다. 워커에게 먼저 할 일을 주거나, 과제에 도구 이름을 적어 두고 다시 시도하게 한다.

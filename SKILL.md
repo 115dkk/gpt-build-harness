@@ -69,13 +69,13 @@ This is the operating mode with the largest savings.
 Which form applies is decided by two things: **does GPT need to hold tools directly**, and **is this session pointed at the proxy base_url**. The decision table is in `references/three-forms.md`.
 
 1. **Oracle relay (the `gpt` agent)**: Daybreak reasons without tools. For opinions and cross-checks on code and logs you paste in. It works **instantly in any session** and structurally forces the Claude gate, but pasting the entire context is cramped work. If tools are needed, go to form 2.
-2. **Direct worker (`tools/gpt-agent.ps1`)**: no haiku wrapper. **In any session (bridge sessions included)** it attaches a child `claude -p` to the proxy so Daybreak holds the tools itself (Read/Edit/Write/Grep/Glob, with `-AllowBash` as an opt-in). This is the **default choice** when an ordinary session needs a tool-holding GPT (verified in practice on 2026-08-20).
+2. **Direct worker (`tools/gpt-agent.ps1`)**: no haiku wrapper. **In any session (bridge sessions included)** it attaches a child `claude -p` to the proxy so Daybreak holds the tools itself (Read/Edit/Write/Grep/Glob plus WebSearch and WebFetch, with `-AllowBash` as an opt-in; a search MCP tool name goes in through `-Tools` or `GPT_AGENT_EXTRA_TOOLS`). This is the **default choice** when an ordinary session needs a tool-holding GPT (verified in practice on 2026-08-20).
 3. **Worker subagent (the `gpt-worker` agent)**: Daybreak is the subagent's own LLM, so it reads files, edits them and runs commands directly. Only in sessions where `ANTHROPIC_BASE_URL` points at the proxy. In a **mixed session** (`gpt-cc.ps1 -Main claude`) the main loop stays Claude on its subscription OAuth (pass-through confirmed in practice, no API key needed) while `Agent(gpt-worker)` gives native in-conversation collaboration.
 4. **Main loop model (the `gpt-cc.ps1` launcher)**: run all of Claude Code on Daybreak. The launcher sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000` so the session **auto-compacts at 500k tokens** (the same knob as the `autoCompactWindow` setting; it overrides the fallback window used for unrecognised models).
 
 **The syntax for naming the model differs by form.** The relay takes directive lines on the first lines of the prompt (`GPT-MODEL: gpt-daybreak-blue` plus `GPT-EFFORT: high|max`); the direct worker takes an `-Effort high|max` parameter; worker and main take a model id with the effort as a suffix (`gpt-daybreak-blue-high`, or `gpt-daybreak-blue-max` for hopeless problems). The main model cannot be switched with `/model`: that swaps the endpoint, so it needs a new session from the launcher.
 
-**GPT can search the code now, too.** The relay has no tools and cannot search, but the direct worker (form 2) digs through the codebase itself with Grep/Glob/Read in any session. Split the work with Claude (Explore) as you like.
+**GPT can search the code and the web now, too.** The relay has no tools and cannot search, but the direct worker (form 2) digs through the codebase itself with Grep/Glob/Read in any session, and since v0.4.0 its WebSearch runs as the codex web search through the proxy, so it checks documentation instead of writing from memory. Split the work with Claude (Explore) as you like.
 
 ## Proven pitfalls
 
@@ -86,5 +86,6 @@ Collected in `references/pitfalls.md`. The ones stepped on most often:
 - **HTML entities in agent and Workflow results are a display-layer artefact.** Do not restore them by hand; pull the original text from `journal.jsonl`. Claude agents' results are escaped exactly the same way.
 - The proxy must not send `max_output_tokens` to codex responses (400).
 - Worker and main forms only work in a proxy session. Calling `gpt-daybreak-blue-*` from an ordinary session gives a 404, so ordinary sessions use the direct worker (`gpt-agent.ps1`).
-- `--allowedTools` in `claude -p` takes a variable number of arguments and swallows the positional prompt that follows. Pipe the task in over stdin (`gpt-agent.ps1` handles this).
+- `--allowedTools` in `claude -p` takes a variable number of arguments and swallows the positional prompt that follows. Pipe the task in over stdin, and put every other `claude` argument before it (`gpt-agent.ps1` does both).
+- Function tools reach codex with `strict: false`. Under strict function calling GPT fills every optional property with invented values (dates, filters) that the tool then rejects; the proxy turns strict off (v0.4.0).
 - **The main model cannot be launched through the remote control bridge.** `claude remote-control` inspects `ANTHROPIC_BASE_URL` and refuses anything that is not api.anthropic.com. Driving from a phone means the ordinary bridge plus the relay.

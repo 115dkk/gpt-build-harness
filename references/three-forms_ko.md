@@ -5,7 +5,7 @@
 | 형태 | 도구 | 어디서 되나 | 손은 누구 | 언제 |
 |---|---|---|---|---|
 | 오라클 릴레이 | 없음(추론만) | 어느 세션에서나 | Claude | 붙여 준 맥락에 대한 순수 추론(리뷰 소견, 교차검증, 2차 의견) |
-| 직접 워커 (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob (+Bash 옵트인) | **어느 세션에서나**(브릿지 포함) | GPT 자신 | 일반 세션에서 도구 쥔 백엔드 잡부가 필요할 때의 **기본 선택** |
+| 직접 워커 (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob/WebSearch/WebFetch (+Bash·MCP 옵트인) | **어느 세션에서나**(브릿지 포함) | GPT 자신 | 일반 세션에서 도구 쥔 백엔드 잡부가 필요할 때의 **기본 선택** |
 | 워커 서브에이전트 (`gpt-worker`) | Read/Write/Edit/Bash/… | 프록시 세션(gpt-cc, `-Main claude` 혼합 포함) | GPT 자신 | 네이티브 Agent() UX로 병렬·백그라운드 협업 |
 | 메인 루프 모델 | Claude Code 전체 도구 | 프록시 세션(gpt-cc) | GPT 자신 | 세션 전체를 GPT로 굴리는 실험 |
 
@@ -24,10 +24,14 @@ haiku 껍데기 없이, **어느 세션에서든** 도구를 쥔 Daybreak를 부
 & ... -Effort max          # 절망적으로 어려운 문제만
 & ... -AllowBash           # Bash 도구 허용 (무감독 셸, 의식적으로 옵트인)
 & ... -TaskFile big.txt    # 긴 과제는 파일로
+& ... -Tools 'Read,Grep,mcp__<server>__<tool>'   # 도구 목록을 통째로 바꿀 때
 ```
 
 - 과제는 stdin으로 전달한다(`--allowedTools`가 가변 인자라 위치 프롬프트를 삼키는 함정을 피한다).
-- 기본 허용 도구는 Read/Edit/Write/Grep/Glob. 나머지는 -p 모드에서 자동 거부하므로 GPT가 임의로 넓히지 못한다.
+- 기본 허용 도구는 Read/Edit/Write/Grep/Glob/WebSearch/WebFetch. 나머지는 -p 모드에서 자동 거부하므로 GPT가 임의로 넓히지 못한다. `-Tools`는 목록을 통째로 바꾸고, 환경 변수 `GPT_AGENT_EXTRA_TOOLS`(쉼표 구분)는 목록에 덧붙인다. 검색 MCP 도구 이름은 여기에 넣는다.
+- WebSearch는 프록시를 거쳐 동작한다. 프록시가 Claude Code의 서버 쪽 웹 검색을 codex 웹 검색으로 옮기고, 답변의 인용에서 결과 블록을 다시 만든다(2026-09-04 실측). WebFetch는 로컬에서 받아 패스스루 모델로 요약하므로 매핑이 필요 없다.
+- MCP 도구는 프록시를 일반 함수로 통과한다. 다만 claude.ai 커넥터의 도구는 커넥터가 연결된 뒤에야 목록에 나타나고, 그때까지 몇 턴이 걸리기도 한다. 첫 턴부터 그 도구가 필요한 과제는 도구를 보지 못한다.
+- 추가 `claude` 인자(`--output-format stream-json --verbose` 등)는 스크립트 파라미터 뒤에 붙이면 그대로 넘어간다. 스크립트가 그 인자를 `--allowedTools` 앞에 두므로 삼켜지지 않는다.
 - 과제 본문에는 **절대경로**를 쓴다(자식 claude가 cwd를 리셋하기도 한다).
 - 자식이 찍는 "unrecognized model" 경고는 무해하다(컨텍스트 윈도우는 env로 500k 고정).
 - 자동압축 500k(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`)가 기본으로 걸린다.
@@ -85,7 +89,7 @@ gpt-daybreak-blue-<effort>      예: gpt-daybreak-blue-high, gpt-daybreak-blue-m
 
 ## 역할별로 형태를 고르기
 
-**코드 뒤지기와 직접 수정은 형태 2/3이 한다.** 릴레이 GPT는 도구가 없어 코드베이스를 아예 못 뒤진다. 일반 세션이면 `gpt-agent.ps1`, 프록시 세션이면 `gpt-worker`가 맡는다. Claude(Explore)와 분담해도 된다.
+**코드 뒤지기와 직접 수정은 형태 2/3이 한다.** 릴레이 GPT는 도구가 없어 코드베이스도 웹도 뒤지지 못한다. 형태 2/3에는 WebSearch와 WebFetch가 있다. 일반 세션이면 `gpt-agent.ps1`, 프록시 세션이면 `gpt-worker`가 맡는다. Claude(Explore)와 분담해도 된다.
 
 **순수 소견(리뷰·교차검증)은 릴레이가 가장 싸다.** 대상 코드를 붙여 주고 소견만 받을 때는 자식 claude를 띄울 필요가 없다.
 

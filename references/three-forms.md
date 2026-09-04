@@ -5,7 +5,7 @@ Two questions decide the form: **does the job need GPT to hold tools itself**, a
 | Form | Tools | Where it works | Whose hands | When |
 |---|---|---|---|---|
 | Oracle relay | none (reasoning only) | any session | Claude's | pure reasoning over pasted context: review notes, cross-checks, second opinions |
-| Direct worker (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob (+Bash opt-in) | **any session**, bridge included | GPT's own | the **default choice** when an ordinary session needs a tool-holding backend labourer |
+| Direct worker (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob/WebSearch/WebFetch (+Bash and MCP opt-in) | **any session**, bridge included | GPT's own | the **default choice** when an ordinary session needs a tool-holding backend labourer |
 | Worker subagent (`gpt-worker`) | Read/Write/Edit/Bash/… | proxy sessions (gpt-cc, including `-Main claude` mixed) | GPT's own | parallel and background collaboration through the native Agent() UX |
 | Main loop model | all of Claude Code's tools | proxy sessions (gpt-cc) | GPT's own | the experiment of running a whole session on GPT |
 
@@ -24,10 +24,14 @@ This runs a tool-holding Daybreak **in any session**, with no haiku wrapper (ver
 & ... -Effort max          # only for hopelessly hard problems
 & ... -AllowBash           # allow the Bash tool (an unsupervised shell, opt in deliberately)
 & ... -TaskFile big.txt    # long tasks go in a file
+& ... -Tools 'Read,Grep,mcp__<server>__<tool>'   # replace the tool list outright
 ```
 
 - The task is passed over stdin, which avoids the trap where `--allowedTools` takes a variable number of arguments and swallows the positional prompt.
-- The default tool set is Read/Edit/Write/Grep/Glob. Everything else is auto-denied in -p mode, so GPT cannot widen it on its own.
+- The default tool set is Read/Edit/Write/Grep/Glob/WebSearch/WebFetch. Everything else is auto-denied in -p mode, so GPT cannot widen it on its own; `-Tools` replaces the list and the `GPT_AGENT_EXTRA_TOOLS` environment variable (comma-separated) appends to it, which is where a search MCP tool name goes.
+- WebSearch works through the proxy: it maps Claude Code's server-side web search onto the codex web search and rebuilds the result blocks from the answer's citations (verified 2026-09-04). WebFetch fetches locally and summarises through the pass-through model, so it needs no mapping.
+- MCP tools pass through the proxy as ordinary functions, but a claude.ai connector's tools only appear once the connector has connected, which can be a few turns into the run; a task that needs them on its first turn will not see them.
+- Extra `claude` arguments (`--output-format stream-json --verbose` and the like) are passed through after the script's own parameters; the script places them before `--allowedTools`, which would otherwise swallow them.
 - Use **absolute paths** in the task body; the child claude sometimes resets cwd.
 - The "unrecognized model" warning the child prints is harmless (the context window is pinned to 500k through the env).
 - Auto-compact at 500k (`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`) is applied by default.
@@ -85,7 +89,7 @@ This is the form used by the `gpt-worker` agent's frontmatter `model:` and by th
 
 ## Picking a form by role
 
-**Digging through code and editing it directly is forms 2 and 3.** The relay GPT has no tools and cannot search the codebase at all. In an ordinary session that work goes to `gpt-agent.ps1`; in a proxy session, to `gpt-worker`. Splitting it with Claude (Explore) is fine too.
+**Digging through code and editing it directly is forms 2 and 3.** The relay GPT has no tools and cannot search the codebase at all, nor the web; forms 2 and 3 have WebSearch and WebFetch. In an ordinary session that work goes to `gpt-agent.ps1`; in a proxy session, to `gpt-worker`. Splitting it with Claude (Explore) is fine too.
 
 **For opinions alone (review, cross-check) the relay is cheapest.** When you paste the code in and only want an opinion back, there is no reason to start a child claude.
 

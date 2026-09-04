@@ -7,7 +7,7 @@ The tools use the local ChatGPT **subscription token** (the codex login cache). 
 
 ## The four forms (summary)
 - **Oracle relay**: reasoning without tools. Works instantly in any session. Claude holds the hands. Opinions only.
-- **Direct worker (`gpt-agent.ps1`)**: GPT holds the tools through a child claude. Works in any session, bridge included. The default labourer in ordinary sessions.
+- **Direct worker (`gpt-agent.ps1`)**: GPT holds the tools through a child claude, web search included (the proxy runs it as the codex web search). Works in any session, bridge included. The default labourer in ordinary sessions.
 - **Worker subagent**: GPT holds the tools directly. Proxy sessions only (including the mixed session `gpt-cc -Main claude`).
 - **Main loop model**: the whole session runs on GPT. The 500k auto-compact (`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`) is set by the launcher.
 

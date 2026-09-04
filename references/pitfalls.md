@@ -35,7 +35,7 @@ The `gpt-worker` subagent and a GPT main model both need `ANTHROPIC_BASE_URL` po
 Claude Code sends its subscription OAuth bearer even when `ANTHROPIC_BASE_URL` is the proxy, and the proxy hands it to api.anthropic.com unchanged and gets a 200 back. That is why a mixed session (`gpt-cc.ps1 -Main claude`) needs no API key. Setting `ANTHROPIC_AUTH_TOKEN`, however, **overrides** the OAuth and makes the pass-through return 401. Never set it in mixed mode (leave the dummy token of GPT main mode alone).
 
 **`--allowedTools` in `claude -p` takes a variable number of arguments and swallows the prompt.**
-`claude -p --allowedTools "Read Write" "task..."` eats the task as part of the tool list and dies with "Input must be provided either through stdin or as a prompt argument" (measured). Pipe the task in over stdin (`"task" | claude -p --allowedTools "Read,Write"`). `gpt-agent.ps1` does it this way.
+`claude -p --allowedTools "Read Write" "task..."` eats the task as part of the tool list and dies with "Input must be provided either through stdin or as a prompt argument" (measured). Pipe the task in over stdin (`"task" | claude -p --allowedTools "Read,Write"`). Every other `claude` argument has to come before `--allowedTools` for the same reason; `gpt-agent.ps1` does both (its pass-through arguments used to be swallowed silently until 2026-09-04).
 
 **The unrecognised-model warning is harmless.**
 Starting a child claude on `gpt-daybreak-blue-*` prints a "not a model this version recognizes" warning. Pin the window with `CLAUDE_CODE_AUTO_COMPACT_WINDOW`/`CLAUDE_CODE_MAX_CONTEXT_TOKENS`; the `modelOverrides` setting the warning suggests is a mapping from a known Anthropic ID to a provider ID (for managed settings) and does not fit this use.
@@ -87,8 +87,8 @@ It becomes `com.<Korean username>.…`, and `generate_context!` sometimes reject
 
 What came out of the first real run where the core of an Android app (domain, slot computation, storage, PNG rendering, export) went to the `gpt-agent.ps1` direct worker in one piece while Claude owned the screens (Svelte). The result shipped as a release with 56 core tests attached.
 
-**Give it search permission too.**
-Putting WebSearch, WebFetch and a search MCP in the worker's allowed tools cuts down hallucinated guesses at crate APIs it does not know. Letting the worker check the documentation itself is cheaper than letting it invent what it could not verify. Whether to open up Bash is a separate decision to make deliberately (it is an unsupervised shell).
+**Give it search permission too (the default since v0.4.0).**
+Putting WebSearch, WebFetch and a search MCP in the worker's allowed tools cuts down hallucinated guesses at crate APIs it does not know. Letting the worker check the documentation itself is cheaper than letting it invent what it could not verify. WebSearch and WebFetch are in `gpt-agent.ps1`'s default list now; a search MCP tool goes in through `-Tools` or `GPT_AGENT_EXTRA_TOOLS`. Whether to open up Bash is a separate decision to make deliberately (it is an unsupervised shell).
 
 **The worker starts subagents and worktrees on its own.**
 The direct worker is a child `claude` session, so on its own judgement it spawns subagents, produces output in a separate worktree, and even sends messages to other sessions (measured). **Check the work tree yourself rather than the completion report**, and copy back anything produced outside the main tree. Nailing the absolute output paths into the delegated task reduces the scatter.
@@ -98,3 +98,17 @@ Even when the worker reports a pass, Claude runs format, lint and tests itself. 
 
 **Implement and audit in two different forms.**
 Handing the finished core to the relay (the tool-less oracle) for an audit turned up a real defect: where a new file is created, the id-collision check and the save were not inside the same lock, so concurrent creation could race. The same model in a different form gives a different field of view. Implementation by the worker, audit by the relay, is the cheap split.
+
+## Web search, MCP and function calling through the proxy (2026-09-04)
+
+**Claude Code's WebSearch is a server-side tool, and codex cannot run Anthropic's.**
+The proxy used to drop it, so a worker's WebSearch silently returned nothing. Since v0.4.0 the proxy maps the `web_search` server tool onto the codex web search (domain filters and a forced tool choice included) and rebuilds the `server_tool_use` and `web_search_tool_result` blocks Claude Code parses from the answer's URL citations. Measured end to end: a worker asked to search got four links back. WebFetch never needed this; it fetches locally and summarises through the pass-through model.
+
+**Send function tools with `strict: false`.**
+Under the codex default the model treated every schema property as required and invented values for the optional ones: a search tool received both a recency filter and explicit date filters and rejected the call seven times in a row, and Read got `pages: ""`. With strict off the same model sends only the arguments it means. The proxy sets it on every function tool.
+
+**Function names over 64 characters are rejected by codex.**
+MCP tool names (`mcp__<server>__<tool>`) can exceed that. The proxy shortens them with a hash suffix on the way in and restores the original on the way out, so long MCP names work unchanged.
+
+**A claude.ai connector's tools arrive late.**
+In a headless `claude -p` the connectors do load, but their tools appear in the tool list only after the connector has connected, which can be a few turns into the run. A one-turn probe reported the tool as missing while a four-turn run used it (three results). Give the worker something to do first, or name the tool in the task and let it retry.
