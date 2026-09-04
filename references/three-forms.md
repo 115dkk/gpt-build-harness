@@ -89,9 +89,9 @@ This is the form used by the `gpt-worker` agent's frontmatter `model:` and by th
 
 ## Picking a form by role
 
-**Digging through code and editing it directly is forms 2 and 3.** The relay GPT has no tools and cannot search the codebase at all, nor the web; forms 2 and 3 have WebSearch and WebFetch. In an ordinary session that work goes to `gpt-agent.ps1`; in a proxy session, to `gpt-worker`. Splitting it with Claude (Explore) is fine too.
+**Backend implementation goes to forms 2 and 3 by default, without the user asking.** The relay GPT has no tools and cannot search the codebase at all, nor the web; forms 2 and 3 have WebSearch and WebFetch. In an ordinary session that work goes to `gpt-agent.ps1`; in a proxy session, to `gpt-worker`. Splitting it with Claude (Explore) is fine too.
 
-**For opinions alone (review, cross-check) the relay is cheapest.** When you paste the code in and only want an opinion back, there is no reason to start a child claude.
+**The relay is for audit, or for work where GPT must not write.** Review, cross-check and second opinions on pasted code or diffs, and tasks in which GPT may not hold write access: for those there is no reason to start a child claude. Implementation is not taken through the relay.
 
 **In a Workflow, use `agentType: 'gpt'`.** It works, and it comes back with the StructuredOutput schema filled in. Take the return value from `journal.jsonl` rather than from the notification text. (In a proxy session `agentType: 'gpt-worker'` works as well.)
 

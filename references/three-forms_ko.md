@@ -89,9 +89,9 @@ gpt-daybreak-blue-<effort>      예: gpt-daybreak-blue-high, gpt-daybreak-blue-m
 
 ## 역할별로 형태를 고르기
 
-**코드 뒤지기와 직접 수정은 형태 2/3이 한다.** 릴레이 GPT는 도구가 없어 코드베이스도 웹도 뒤지지 못한다. 형태 2/3에는 WebSearch와 WebFetch가 있다. 일반 세션이면 `gpt-agent.ps1`, 프록시 세션이면 `gpt-worker`가 맡는다. Claude(Explore)와 분담해도 된다.
+**백엔드 구현은 시키지 않아도 형태 2/3이 맡는다.** 릴레이 GPT는 도구가 없어 코드베이스도 웹도 뒤지지 못한다. 형태 2/3에는 WebSearch와 WebFetch가 있다. 일반 세션이면 `gpt-agent.ps1`, 프록시 세션이면 `gpt-worker`가 맡는다. Claude(Explore)와 분담해도 된다.
 
-**순수 소견(리뷰·교차검증)은 릴레이가 가장 싸다.** 대상 코드를 붙여 주고 소견만 받을 때는 자식 claude를 띄울 필요가 없다.
+**릴레이는 검수, 아니면 GPT가 쓰면 안 되는 일에 쓴다.** 붙여 준 코드나 디프의 리뷰·교차검증·2차 의견, 그리고 GPT에 쓰기 권한을 주면 안 되는 과제. 그런 일에는 자식 claude를 띄울 이유가 없다. 구현을 릴레이로 받지는 않는다.
 
 **Workflow에 꽂을 때는 `agentType: 'gpt'`를 쓴다.** 정상 작동하며 StructuredOutput 스키마도 채워 돌아온다. 반환물은 알림 텍스트가 아니라 `journal.jsonl`에서 꺼낸다. (프록시 세션이라면 `agentType: 'gpt-worker'`도 된다.)
 

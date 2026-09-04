@@ -11,13 +11,13 @@ description: >-
   implementation, belongs to Claude alone and is never handed to Daybreak.
   GPT runs in four forms: (1) a tool-less oracle relay for opinions only,
   (2) the direct worker (gpt-agent.ps1: a tool-holding GPT in any session
-  with no haiku wrapper, the default labourer in ordinary sessions), (3) the
+  with no haiku wrapper, the default labourer in ordinary sessions, used for
+  backend work without the user having to ask), (3) the
   worker subagent (proxy sessions only; with gpt-cc -Main claude the main
   loop stays Claude and Agent() collaboration is native), (4) Claude Code's
-  main loop model (auto-compact at 500k). Use it when a large backend build
-  would burn too many Claude tokens, when cross-checking or a second opinion
-  is needed, or to split audit and review work. The executable tools ship as
-  a release asset.
+  main loop model (auto-compact at 500k). Backend implementation goes to the
+  worker by default; the relay is only for audit or for work where GPT must
+  not hold write access. The executable tools ship as a release asset.
 ---
 
 # GPT Build Harness (Daybreak Blue)
@@ -49,6 +49,15 @@ This document is the overview; per-form detail lives in `references/`. **The exe
 - **Use it aggressively for audit.** Attaching finished backend code or a diff and asking for defects, boundary conditions and a second opinion is what Daybreak is good at. Its opinion is input, not a conclusion: Claude decides what to adopt and runs the real verification (compile, test).
 
 **Never use it on the frontend.** Its aesthetic sense is catastrophic to a degree that produces output no human can use. This prohibition has no exceptions: the old docs' loophole of "translating a settled design into render code" is discarded as well. **Claude owns the frontend end to end, planning and implementation alike.**
+
+## Default delegation (2026-09-04)
+
+Backend work goes to Daybreak **without being asked**. The user does not want to spell out "use the GPT worker" every time, so when a task is backend implementation (service, native code, scripts, test scaffolding, anything with no user-facing screen), Claude delegates it as a matter of course and says so in one line.
+
+- **Default form:** the direct worker (`gpt-agent.ps1`) in an ordinary session, `gpt-worker` in a proxy session.
+- **Claude keeps:** the design (module boundaries, types and signatures, error policy), the task brief, the diff review, the format/lint/test gates, commits and PRs. Frontend and CI/CD design are never delegated.
+- **Claude does directly:** short edits inside one file, changes where settling the design is the implementation, and the polish after a worker's run; that is when starting a worker costs more than the work.
+- **The relay (`gpt` agent) has two uses only:** audit of finished code or a diff (review, cross-check, second opinion), and work where GPT must not hold write access (a sensitive tree, a change that is hard to undo). Implementation is not taken through the relay and retyped by Claude.
 
 ### The whole-backend delegation pattern
 
