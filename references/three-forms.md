@@ -89,7 +89,7 @@ gpt-daybreak-blue-<effort>      e.g. gpt-daybreak-blue-high, gpt-daybreak-blue-m
 gpt-6-astra-<effort>            e.g. gpt-6-astra-high, gpt-6-astra-max
 ```
 
-This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:` and by the `ANTHROPIC_MODEL` that the launcher and `gpt-agent.ps1` set (the direct worker takes `-Model daybreak|astra` and `-Effort high|max` and builds the slug itself). Drop the suffix and the proxy falls back to the `GPT_EFFORT` environment variable (default high). ASTRA rejects `ultra` with HTTP 400, and it also refuses to answer at all when the proxy claims an old codex version, so keep `GPT_CODEX_VERSION` current.
+This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:` and by the `ANTHROPIC_MODEL` that the launcher and `gpt-agent.ps1` set (the direct worker takes `-Model daybreak|astra` and `-Effort high|max` and builds the slug itself). Drop the suffix and the proxy falls back to the `GPT_EFFORT` environment variable (default high). The endpoint refuses `ultra` for both models with HTTP 400 (it is a Codex client mode, not an effort value), and ASTRA refuses to answer at all when the proxy claims an old codex version, so keep `GPT_CODEX_VERSION` current.
 
 **The main model cannot be changed with `/model`.** It is not a matter of choosing a model but of swapping the endpoint. The launcher points `ANTHROPIC_BASE_URL` at the proxy and then starts `claude`, and that value is fixed when the process starts. Typing `/model gpt-daybreak-blue-high` in an already-running ordinary session sends the request to the real Anthropic and returns 404. To run GPT as the main model, start a **new session** from the launcher.
 
@@ -97,7 +97,7 @@ This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:
 
 **Backend implementation goes to forms 2 and 3 by default, without the user asking.** The relay GPT has no tools and cannot search the codebase at all, nor the web; forms 2 and 3 have WebSearch and WebFetch. In an ordinary session that work goes to `gpt-agent.ps1`; in a proxy session, to `gpt-worker`. Splitting it with Claude (Explore) is fine too.
 
-**Non-trivial drawing goes to ASTRA by default, without the user asking (2026-09-05).** A new view, a component set, a layout or style system, a mockup, a gallery page or a batch of i18n keys goes to `gpt-agent.ps1 -Model astra` in an ordinary session and to `astra-worker` in a proxy session, once Claude has settled the design direction. Claude reviews the diff and runs the gates, and keeps trivial edits (a label, a colour, a few lines in one component) for itself.
+**Non-trivial drawing goes to ASTRA by default, without the user asking (2026-09-05), as long as the frontend already stands.** A new view, a component set, a layout or style system, a mockup, a gallery page or a batch of i18n keys goes to `gpt-agent.ps1 -Model astra` in an ordinary session and to `astra-worker` in a proxy session, once Claude has settled the design direction. **A frontend being built from nothing is the exception**: Claude raises the skeleton (structure, component idiom, tokens, the first screens), and ASTRA takes over only once there is something to work inside. Claude reviews the diff and runs the gates, and keeps trivial edits (a label, a colour, a few lines in one component) for itself.
 
 **The relay is for audit, or for work where GPT must not write.** Review, cross-check and second opinions on pasted code or diffs, and tasks in which GPT may not hold write access: for those there is no reason to start a child claude. Implementation is not taken through the relay.
 
@@ -108,5 +108,6 @@ This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:
 - GPT has to dig through and edit files in an ordinary session (bridge included) → **the direct worker (`gpt-agent.ps1`)**.
 - Only an opinion or a cross-check on pasted code is needed → **the relay**.
 - You can start a new local session and want parallel collaboration with GPT through Agent() inside the conversation → **a mixed session (`gpt-cc.ps1 -Main claude`) plus the worker**.
-- It is drawing or i18n labour beyond a trivial edit → **ASTRA** (`gpt-agent.ps1 -Model astra`, or `astra-worker` in a proxy session), with Claude settling the design direction first and reviewing the diff. Daybreak still never touches a screen.
+- It is drawing or i18n labour beyond a trivial edit, on a frontend that already stands → **ASTRA** (`gpt-agent.ps1 -Model astra`, or `astra-worker` in a proxy session), with Claude settling the design direction first and reviewing the diff.
+- It is a frontend from nothing → **Claude**, until the skeleton and the first screens exist. Daybreak still never touches a screen at all.
 - You want to try running a whole session on GPT → **the main model (`gpt-cc.ps1`)**.

@@ -20,7 +20,7 @@ GPT는 파일을 못 읽고 못 쓰고 아무것도 실행하지 못한다. 맥�
 `gpt-6`, `gpt-astra`, `gpt-6-astra-latest`는 전부 HTTP 400("not supported when using Codex with a ChatGPT account")이고, `gpt-6-astra`만 200을 돌려주며 응답의 model에도 같은 이름이 온다. 함께 확인한 것이 셋 더 있다.
 
 - **낡은 `version` 헤더는 거절당한다.** 프록시가 쓰던 0.144.1로는 백엔드가 `The 'gpt-6-astra' model requires a newer version of Codex. Please upgrade to the latest app or CLI and try again.`(HTTP 400)로 답한다. 0.153.4로 보내면 통과한다. `GPT_CODEX_VERSION`을 설치된 codex CLI 버전 이상으로 둔다.
-- **`ultra`는 이 모델의 effort가 아니다.** Astra는 400과 함께 지원 값 목록(none, minimal, low, medium, high, xhigh, max)을 돌려준다. Daybreak는 `ultra`를 받는다.
+- **`ultra`는 엔드포인트가 받는 effort가 아예 아니다.** Astra도 Daybreak도 400과 함께 지원 값 목록(none, minimal, low, medium, high, xhigh, max)을 돌려준다(둘 다 실측). ultra는 Codex 클라이언트 쪽 모드로 자동 작업 분배가 붙은 최대 추론이라, Codex 앱과 CLI에서는 Astra에도 뜨지만 `reasoning.effort`를 그대로 실어 보내는 하네스에서는 쓸 수 없다. 그래서 카탈로그 항목에 ultra가 있어도 하네스의 어느 형태로도 보낼 수 없다.
 - CLI와 데스크탑 앱을 최신으로 올린 뒤에도 이 계정의 `codex debug models` 목록에는 이 모델이 **없다**. 카탈로그와 responses 백엔드가 받아 주는 목록은 별개다. 카탈로그를 믿지 말고 백엔드로 찔러 본다.
 
 ## 에이전트·Workflow 결과 전달

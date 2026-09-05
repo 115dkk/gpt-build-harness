@@ -20,7 +20,7 @@ Variants with a version prefix (`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak`, `gp
 `gpt-6`, `gpt-astra` and `gpt-6-astra-latest` all return HTTP 400 ("not supported when using Codex with a ChatGPT account"); only `gpt-6-astra` returns 200, and the response echoes that same name. Two more measured facts about it:
 
 - **An old `version` header is refused.** With the proxy's old value of 0.144.1 the backend answered `The 'gpt-6-astra' model requires a newer version of Codex. Please upgrade to the latest app or CLI and try again.` (HTTP 400). Sending 0.153.4 works. Keep `GPT_CODEX_VERSION` at or above the installed codex CLI.
-- **`ultra` is not a valid effort for it.** Astra returns 400 listing the supported values (none, minimal, low, medium, high, xhigh, max), while Daybreak accepts `ultra`.
+- **`ultra` is not an effort the endpoint takes at all.** Astra returns 400 listing none/minimal/low/medium/high/xhigh/max, and so does Daybreak (measured for both). Ultra is a Codex client mode, "maximum reasoning with automatic task delegation", so the Codex app and CLI offer it for Astra while the harness, which posts `reasoning.effort` straight to the endpoint, cannot use it. A catalogue entry may therefore list ultra even though no harness form can send it.
 - The model does **not** appear in `codex debug models` on this account even after updating the CLI and the Store app; the catalogue and what the responses backend accepts are two different lists. Probe the backend rather than trusting the catalogue.
 
 ## Getting results back from agents and Workflows

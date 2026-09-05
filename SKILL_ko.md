@@ -14,7 +14,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, GPT를 잡부로 붙여 구현
 
 - **Daybreak Blue의 슬러그는 `gpt-daybreak-blue`이고 버전 접두사가 없다.** 2026-08-19 codex responses 백엔드 실측으로 확인했다(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak` 등 변형은 전부 HTTP 400, `gpt-daybreak-blue`만 200). GPT-5.6 Sol의 튜닝 버전이고, 백엔드 노동에서는 구독 쿼터를 덜 쓰면서 성능이 같으므로 계속 기본값이다.
 - **ASTRA의 슬러그는 `gpt-6-astra`다**(GPT-6 Astra, 2026-09-03 공개). 2026-09-05에 같은 백엔드로 실측했다. 이 슬러그만 200을 돌려주고 응답의 model도 `gpt-6-astra`로 오며 `gpt-6`, `gpt-astra`, `gpt-6-astra-latest`는 전부 HTTP 400이다. 화면과 i18n 카탈로그, 그리고 Daybreak가 막히는 백엔드 문제를 이쪽으로 보낸다.
-- **effort는 `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** ASTRA는 low부터 max까지 받지만 `ultra`는 HTTP 400으로 거절한다(2026-09-05 실측). Daybreak는 `ultra`도 받는다. 릴레이 스크립트·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
+- **effort는 `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** `ultra`는 이 경로로 보낼 수 있는 effort가 아니다. responses 엔드포인트는 두 모델 모두에 대해 400을 주며 지원 값으로 none, minimal, low, medium, high, xhigh, max를 돌려준다(2026-09-05 실측). ultra는 Codex 클라이언트 쪽 모드(자동 작업 분배가 붙은 최대 추론)라서 Codex 앱과 CLI에서는 ASTRA로도 고를 수 있지만, 엔드포인트를 직접 부르는 하네스에서는 쓰지 못한다. 릴레이 스크립트·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
 - **컨텍스트는 ASTRA가 1M이고 860k에서 압축한다.** 직접 워커와 런처가 ASTRA에 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`과 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=860000`을 건다. Daybreak는 500k 압축 그대로다. Codex 쪽에는 같은 숫자를 프로파일 파일에 넣고 `codex -p <이름>`으로 얹는다(`model`, `model_context_window = 1000000`, `model_auto_compact_token_limit = 860000`, `model_auto_compact_token_limit_scope = "total"`). 모델 선택기에 뜨게 하려면 `model_catalog_json` 항목에 `context_window` 1000000으로 등록해야 한다.
 - **ASTRA는 `version` 헤더를 본다.** 낡은 CLI 버전을 적어 보내면 백엔드가 Codex를 올리라며 HTTP 400을 준다. 프록시가 보내던 0.144.1이 그렇게 거절당했고, 지금은 0.153.4를 보낸다. `GPT_CODEX_VERSION`을 설치된 codex CLI 버전 이상으로 두고 CLI도 최신으로 유지한다(`codex update`, 데스크탑 앱은 스토어로 갱신한다).
 - 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 직접 워커의 `-Model daybreak|astra`, 워커·메인의 `gpt-daybreak-blue-high`와 `gpt-6-astra-high` 접미사형)은 `references/three-forms_ko.md`.
@@ -34,7 +34,8 @@ Claude 혼자 큰 구현을 다 태우는 대신, GPT를 잡부로 붙여 구현
 **대신 ASTRA가 그린다. Claude는 손으로 그리지 않는다(2026-09-05).** ASTRA는 화면을 맡길 만하니, 간단하지 않은 화면을 Claude가 손으로 짜는 것은 낭비다.
 
 - **설계 방향은 Claude가 정한다.** 그 화면이 무엇을 위한 것인지, 배치의 의도, 상태, 토큰(색, 여백, 모서리, 타이포 스케일, 모션), 인터페이스 id와 이름이 그것이다. 이것은 결정이지 그리기가 아니므로 위임하지 않는다.
-- **그리기는 ASTRA가 한다.** 컴포넌트, 레이아웃, 스타일, 목업, 갤러리 페이지, 그리고 i18n 카탈로그 노동(키 추가와 동기화, 자리표시자 집합 맞추기, 카탈로그 게이트 실행)이 여기 들어간다.
+- **이미 선 구조 안에서 그리는 일은 ASTRA가 한다.** 컴포넌트, 레이아웃, 스타일, 목업, 갤러리 페이지, 그리고 i18n 카탈로그 노동(키 추가와 동기화, 자리표시자 집합 맞추기, 카탈로그 게이트 실행)이 여기 들어간다.
+- **맨땅에서 세우는 일은 ASTRA에 주지 않는다.** ASTRA는 골조가 잘 선 프론트엔드를 고칠 때 쓸 만한 것이지 그 골조를 세우는 쪽이 아니다. 구조, 컴포넌트 관례, 토큰 체계, 본을 만드는 첫 화면은 Claude가 세운다. 그것이 선 다음부터 그리기가 ASTRA로 가고, 그때는 당연히 간다. 이쪽에서 ASTRA는 노예지 설계자가 아니다.
 - **디프 검토와 게이트는 Claude가 한다.** 백엔드 위임과 같다. ASTRA의 자기 신고는 게이트가 아니다.
 - **사소한 수정은 Claude가 직접 한다.** 문구 하나, 색 하나, 컴포넌트 한 곳의 몇 줄이면 워커를 띄우는 비용이 더 크다.
 

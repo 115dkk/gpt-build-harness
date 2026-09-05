@@ -89,7 +89,7 @@ gpt-daybreak-blue-<effort>      예: gpt-daybreak-blue-high, gpt-daybreak-blue-m
 gpt-6-astra-<effort>            예: gpt-6-astra-high, gpt-6-astra-max
 ```
 
-`gpt-worker`와 `astra-worker`의 frontmatter `model:`, 런처와 `gpt-agent.ps1`이 세팅하는 `ANTHROPIC_MODEL`이 이 형태다(직접 워커는 `-Model daybreak|astra`와 `-Effort high|max`로 받아 슬러그를 만든다). 접미사를 빼면 프록시가 환경변수 `GPT_EFFORT`(기본 high)를 쓴다. ASTRA는 `ultra`를 HTTP 400으로 거절하고, 프록시가 낡은 codex 버전을 적어 보내면 아예 답하지 않으므로 `GPT_CODEX_VERSION`을 최신으로 둔다.
+`gpt-worker`와 `astra-worker`의 frontmatter `model:`, 런처와 `gpt-agent.ps1`이 세팅하는 `ANTHROPIC_MODEL`이 이 형태다(직접 워커는 `-Model daybreak|astra`와 `-Effort high|max`로 받아 슬러그를 만든다). 접미사를 빼면 프록시가 환경변수 `GPT_EFFORT`(기본 high)를 쓴다. 엔드포인트는 두 모델 모두 `ultra`를 HTTP 400으로 거절한다(ultra는 effort 값이 아니라 Codex 클라이언트 쪽 모드다). ASTRA는 프록시가 낡은 codex 버전을 적어 보내면 아예 답하지 않으므로 `GPT_CODEX_VERSION`을 최신으로 둔다.
 
 **메인 모델은 `/model`로 바꿀 수 없다.** 모델을 고르는 일이 아니라 엔드포인트를 갈아끼우는 일이기 때문이다. 런처는 `ANTHROPIC_BASE_URL`을 프록시로 돌린 뒤 `claude`를 띄우고, 그 값은 프로세스 시작 시점에 정해진다. 이미 돌고 있는 일반 세션에서 `/model gpt-daybreak-blue-high`를 쳐도 요청이 진짜 Anthropic으로 가 404가 난다. GPT를 메인으로 쓰려면 런처로 **새 세션**을 띄운다.
 
@@ -97,7 +97,7 @@ gpt-6-astra-<effort>            예: gpt-6-astra-high, gpt-6-astra-max
 
 **백엔드 구현은 시키지 않아도 형태 2/3이 맡는다.** 릴레이 GPT는 도구가 없어 코드베이스도 웹도 뒤지지 못한다. 형태 2/3에는 WebSearch와 WebFetch가 있다. 일반 세션이면 `gpt-agent.ps1`, 프록시 세션이면 `gpt-worker`가 맡는다. Claude(Explore)와 분담해도 된다.
 
-**간단하지 않은 그림도 시키지 않아도 ASTRA가 맡는다(2026-09-05).** 새 뷰, 컴포넌트 묶음, 레이아웃이나 스타일 체계, 목업, 갤러리 페이지, i18n 키 뭉치는 Claude가 설계 방향을 정한 뒤 일반 세션이면 `gpt-agent.ps1 -Model astra`, 프록시 세션이면 `astra-worker`로 넘긴다. 디프 검토와 게이트는 Claude가 하고, 문구 하나나 색 하나 같은 사소한 수정은 Claude가 직접 한다.
+**프론트엔드가 이미 서 있다면, 간단하지 않은 그림도 시키지 않아도 ASTRA가 맡는다(2026-09-05).** 새 뷰, 컴포넌트 묶음, 레이아웃이나 스타일 체계, 목업, 갤러리 페이지, i18n 키 뭉치는 Claude가 설계 방향을 정한 뒤 일반 세션이면 `gpt-agent.ps1 -Model astra`, 프록시 세션이면 `astra-worker`로 넘긴다. **맨땅에서 세우는 프론트엔드는 예외다.** 골조(구조, 컴포넌트 관례, 토큰, 본이 되는 첫 화면)는 Claude가 세우고, 그 안에서 할 일이 생긴 뒤에야 ASTRA가 이어받는다. 디프 검토와 게이트는 Claude가 하고, 문구 하나나 색 하나 같은 사소한 수정은 Claude가 직접 한다.
 
 **릴레이는 검수, 아니면 GPT가 쓰면 안 되는 일에 쓴다.** 붙여 준 코드나 디프의 리뷰·교차검증·2차 의견, 그리고 GPT에 쓰기 권한을 주면 안 되는 과제. 그런 일에는 자식 claude를 띄울 이유가 없다. 구현을 릴레이로 받지는 않는다.
 
@@ -108,5 +108,6 @@ gpt-6-astra-<effort>            예: gpt-6-astra-high, gpt-6-astra-max
 - 일반 세션(브릿지 포함)에서 GPT가 파일을 직접 뒤지고 고쳐야 한다 → **직접 워커(`gpt-agent.ps1`)**.
 - 붙여 준 코드에 대한 소견·교차검증만 필요하다 → **릴레이**.
 - 로컬에서 새 세션을 띄울 수 있고, 대화 안에서 Agent()로 GPT와 병렬 협업하고 싶다 → **혼합 세션(`gpt-cc.ps1 -Main claude`) + 워커**.
-- 사소하지 않은 그림이나 i18n 노동이다 → **ASTRA**(`gpt-agent.ps1 -Model astra`, 프록시 세션이면 `astra-worker`). 설계 방향은 Claude가 먼저 정하고 디프도 Claude가 본다. Daybreak는 여전히 화면에 손대지 않는다.
+- 이미 선 프론트엔드에서 사소하지 않은 그림이나 i18n 노동이다 → **ASTRA**(`gpt-agent.ps1 -Model astra`, 프록시 세션이면 `astra-worker`). 설계 방향은 Claude가 먼저 정하고 디프도 Claude가 본다.
+- 맨땅에서 프론트엔드를 세운다 → **Claude**. 골조와 첫 화면이 설 때까지는 Claude가 한다. Daybreak는 애초에 화면에 손대지 않는다.
 - 세션 전체를 GPT로 굴려보고 싶다 → **메인 모델(`gpt-cc.ps1`)**.

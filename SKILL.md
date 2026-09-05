@@ -5,9 +5,10 @@ description: >-
   billing) to work as labourers and auditors, so that implementation and
   verification cost almost no Claude tokens. Daybreak Blue (gpt-daybreak-blue,
   the tuning of GPT-5.6 Sol) does the backend labour; ASTRA (gpt-6-astra,
-  GPT-6 Astra, released 2026-09-03) is the model trusted with screens, so
-  non-trivial frontend drawing and i18n catalogue labour go to it and Claude
-  stops drawing them by hand. Effort is high by default, and max is reserved
+  GPT-6 Astra, released 2026-09-03) is the model trusted with screens that
+  already stand, so non-trivial drawing and i18n catalogue labour on an
+  existing frontend go to it and Claude stops drawing them by hand. Raising a
+  frontend from nothing stays with Claude, and ASTRA never designs. Effort is high by default, and max is reserved
   for hopelessly hard problems. Claude keeps architecture, design direction,
   planning and the verdict; the workers produce code and opinions.
   GPT runs in four forms: (1) a tool-less oracle relay for opinions only,
@@ -40,7 +41,7 @@ This document is the overview; per-form detail lives in `references/`. **The exe
 
 - **Daybreak Blue, slug `gpt-daybreak-blue`**, with no version prefix. Confirmed against the codex responses backend on 2026-08-19: variants such as `gpt-5.6-daybreak-blue` and `gpt-5.6-daybreak` all return HTTP 400, and only `gpt-daybreak-blue` returns 200. It is the tuning of GPT-5.6 Sol, and it stays the default for backend labour because it is cheaper on the subscription quota and just as good at it.
 - **ASTRA, slug `gpt-6-astra`** (GPT-6 Astra, released 2026-09-03). Verified live against the same backend on 2026-09-05: it returns 200 and echoes `model: gpt-6-astra`, while `gpt-6`, `gpt-astra` and `gpt-6-astra-latest` all return HTTP 400. This is the model sent at screens, i18n catalogues, and the backend problems Daybreak stalls on.
-- **Effort: `high` by default.** Use `max` only when the problem is hopelessly hard. **The remaining efforts (low/medium/xhigh) are never used.** ASTRA takes low through max but rejects `ultra` with HTTP 400 (measured 2026-09-05) where Daybreak accepts it. The relay, the proxy, the launcher and the direct worker all default to daybreak-blue/high, so omitting the instruction still follows policy.
+- **Effort: `high` by default.** Use `max` only when the problem is hopelessly hard. **The remaining efforts (low/medium/xhigh) are never used.** `ultra` is not an effort this path can send: the responses endpoint answers HTTP 400 for it on both models, listing none/minimal/low/medium/high/xhigh/max (measured 2026-09-05). Ultra is a Codex client mode (maximum reasoning with automatic task delegation), so it is selectable for ASTRA in the Codex app and CLI but never in the harness, which calls the endpoint directly. The relay, the proxy, the launcher and the direct worker all default to daybreak-blue/high, so omitting the instruction still follows policy.
 - **Context window: 1M for ASTRA, compacting at 860k.** The direct worker and the launcher set `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000` and `CLAUDE_CODE_AUTO_COMPACT_WINDOW=860000` for it, against Daybreak's 500k compaction. On the Codex side the same numbers go in a profile file layered with `codex -p <name>` (`model`, `model_context_window = 1000000`, `model_auto_compact_token_limit = 860000`, `model_auto_compact_token_limit_scope = "total"`), and a custom `model_catalog_json` entry with `context_window` 1000000 makes the model appear in the picker at all.
 - **ASTRA is gated on the `version` header.** The backend answers `The 'gpt-6-astra' model requires a newer version of Codex` (HTTP 400) when the caller claims an old CLI version; the proxy used to send 0.144.1 and was refused. It now sends 0.153.4. Keep `GPT_CODEX_VERSION` at or above the installed codex CLI, and keep that CLI current (`codex update`; the Store app updates itself).
 - The per-form syntax (the relay's `GPT-MODEL:`/`GPT-EFFORT:` directive lines, the direct worker's `-Model daybreak|astra`, the `gpt-daybreak-blue-high` / `gpt-6-astra-high` suffix form for worker and main) is in `references/three-forms.md`.
@@ -60,7 +61,8 @@ This document is the overview; per-form detail lives in `references/`. **The exe
 **ASTRA draws instead, and Claude stops drawing by hand (2026-09-05).** ASTRA is good enough at screens that Claude hand-writing a non-trivial one is waste. So:
 
 - **Claude settles the design direction**: what the screen is for, the layout intent, the states, the tokens (colour, spacing, radius, type scale, motion), the interface ids and the naming. That is a decision, not a drawing, and it is never delegated.
-- **ASTRA draws it**: components, layouts, styles, mockups, gallery pages, and i18n catalogue labour (adding and syncing keys, keeping placeholder sets identical, running the catalogue gates).
+- **ASTRA draws it inside a structure that already exists**: components, layouts, styles, mockups, gallery pages, and i18n catalogue labour (adding and syncing keys, keeping placeholder sets identical, running the catalogue gates).
+- **Greenfield is not ASTRA's.** ASTRA is decent at changing a frontend that already has a good skeleton; it is not the one to raise that skeleton. Claude builds it: the structure, the component idiom, the token system and the first screens that set the pattern. Only after that does drawing go to ASTRA, and then it goes there by default. ASTRA is a labourer on this side of the fence, never a designer.
 - **Claude reviews the diff and runs the gates**, exactly as with backend work. ASTRA's self-report is not the gate.
 - **Trivial edits stay with Claude**: a label, a colour swap, a few lines inside one component. Starting a worker for those costs more than doing them.
 
