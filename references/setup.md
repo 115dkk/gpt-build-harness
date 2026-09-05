@@ -8,13 +8,13 @@ The tools use the local ChatGPT **subscription token** (the codex login cache). 
 ## The four forms (summary)
 - **Oracle relay**: reasoning without tools. Works instantly in any session. Claude holds the hands. Opinions only.
 - **Direct worker (`gpt-agent.ps1`)**: GPT holds the tools through a child claude, web search included (the proxy runs it as the codex web search). Works in any session, bridge included. The default labourer in ordinary sessions.
-- **Worker subagent**: GPT holds the tools directly. Proxy sessions only (including the mixed session `gpt-cc -Main claude`).
+- **Worker subagent**: GPT holds the tools directly. Proxy sessions only (including the mixed session `gpt-cc -Main claude`). `gpt-worker` is Daybreak, `astra-worker` is ASTRA.
 - **Main loop model**: the whole session runs on GPT. The 500k auto-compact (`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`) is set by the launcher.
 
 For the detailed decision, see `three-forms.md`.
 
 ## Model operation
-Follow the model policy in SKILL.md. In short: the model called is `gpt-daybreak-blue` (the new tuning of GPT-5.6 Sol; slug confirmed by measurement on 2026-08-19) and nothing else, effort is high by default, and max is used only for hopelessly hard problems. No other model and no other effort. The relay, the proxy and the launcher all default to this policy.
+Follow the model policy in SKILL.md. In short: two models and nothing else. `gpt-daybreak-blue` (the tuning of GPT-5.6 Sol; slug confirmed by measurement on 2026-08-19) does the backend labour, and `gpt-6-astra` (GPT-6 Astra; slug confirmed 2026-09-05) draws screens, does i18n catalogues and takes the problems Daybreak stalls on. Effort is high by default and max only for hopelessly hard problems; no other effort. The relay, the proxy, the launcher and the direct worker all default to daybreak-blue/high. ASTRA additionally needs the proxy's `version` header to be current, so keep the codex CLI updated.
 
 ## Installation
 Download the tools zip from the release and run the install script. Placement and procedure per target follow the "Installation" section of the README. The detailed behaviour of each tool is in the comments of the installed script.

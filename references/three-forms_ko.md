@@ -1,12 +1,12 @@
 # GPT 잡부의 네 형태
 
-어느 형태를 쓸지는 두 가지가 정한다. **GPT가 도구를 직접 쥐어야 하는 일인가**, 그리고 **지금 세션이 프록시 base_url을 쓰는가**. 어느 형태든 호출 모델은 Daybreak Blue(`gpt-daybreak-blue`) 하나다.
+어느 형태를 쓸지는 두 가지가 정한다. **GPT가 도구를 직접 쥐어야 하는 일인가**, 그리고 **지금 세션이 프록시 base_url을 쓰는가**. 어느 형태든 부르는 모델은 둘 중 하나다. 백엔드 노동은 Daybreak Blue(`gpt-daybreak-blue`), 그림과 i18n 카탈로그와 Daybreak가 막히는 문제는 ASTRA(`gpt-6-astra`)가 맡는다.
 
 | 형태 | 도구 | 어디서 되나 | 손은 누구 | 언제 |
 |---|---|---|---|---|
 | 오라클 릴레이 | 없음(추론만) | 어느 세션에서나 | Claude | 붙여 준 맥락에 대한 순수 추론(리뷰 소견, 교차검증, 2차 의견) |
-| 직접 워커 (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob/WebSearch/WebFetch (+Bash·MCP 옵트인) | **어느 세션에서나**(브릿지 포함) | GPT 자신 | 일반 세션에서 도구 쥔 백엔드 잡부가 필요할 때의 **기본 선택** |
-| 워커 서브에이전트 (`gpt-worker`) | Read/Write/Edit/Bash/… | 프록시 세션(gpt-cc, `-Main claude` 혼합 포함) | GPT 자신 | 네이티브 Agent() UX로 병렬·백그라운드 협업 |
+| 직접 워커 (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob/WebSearch/WebFetch (+Bash·MCP 옵트인) | **어느 세션에서나**(브릿지 포함) | GPT 자신 | 일반 세션에서 도구 쥔 잡부가 필요할 때의 **기본 선택**. 그림과 i18n은 `-Model astra` |
+| 워커 서브에이전트 (`gpt-worker`, `astra-worker`) | Read/Write/Edit/Bash/… | 프록시 세션(gpt-cc, `-Main claude` 혼합 포함) | GPT 자신 | 네이티브 Agent() UX로 병렬·백그라운드 협업. 그리는 쪽은 `astra-worker` |
 | 메인 루프 모델 | Claude Code 전체 도구 | 프록시 세션(gpt-cc) | GPT 자신 | 세션 전체를 GPT로 굴리는 실험 |
 
 ## 1. 오라클 릴레이 (`gpt` 에이전트 / `tools/gpt-relay.ps1`)
@@ -21,6 +21,7 @@ haiku 껍데기 없이, **어느 세션에서든** 도구를 쥔 Daybreak를 부
 
 ```powershell
 & "$env:USERPROFILE\.claude\tools\gpt-agent.ps1" -Task "<자기완결 과제, 절대경로 사용>"
+& ... -Model astra        # ASTRA(gpt-6-astra): 그림, i18n, 가장 어려운 백엔드
 & ... -Effort max          # 절망적으로 어려운 문제만
 & ... -AllowBash           # Bash 도구 허용 (무감독 셸, 의식적으로 옵트인)
 & ... -TaskFile big.txt    # 긴 과제는 파일로
@@ -36,9 +37,11 @@ haiku 껍데기 없이, **어느 세션에서든** 도구를 쥔 Daybreak를 부
 - 자식이 찍는 "unrecognized model" 경고는 무해하다(컨텍스트 윈도우는 env로 500k 고정).
 - 자동압축 500k(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`)가 기본으로 걸린다.
 
-## 3. 워커 서브에이전트 (`gpt-worker`)
+## 3. 워커 서브에이전트 (Daybreak는 `gpt-worker`, ASTRA는 `astra-worker`)
 
-GPT 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령 실행을 직접 한다. `ANTHROPIC_BASE_URL`이 `gpt-proxy.mjs`를 가리키는 세션에서만 작동한다. 일반 세션에서 부르면 `gpt-daybreak-blue-*`가 진짜 Anthropic으로 가 즉시 죽는다(실측: "model may not exist" API 오류). 그럴 땐 형태 2를 쓴다.
+GPT 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령 실행을 직접 한다. `ANTHROPIC_BASE_URL`이 `gpt-proxy.mjs`를 가리키는 세션에서만 작동한다. 일반 세션에서 부르면 `gpt-daybreak-blue-*`나 `gpt-6-astra-*`가 진짜 Anthropic으로 가 즉시 죽는다(실측: "model may not exist" API 오류). 그럴 땐 형태 2를 쓴다.
+
+두 서브에이전트는 모양이 같고 모델과 경계만 다르다. `gpt-worker`는 백엔드 잡부, `astra-worker`는 화면과 i18n 카탈로그를 맡는 쪽이다.
 
 프록시 세션은 두 종류다(2026-08-20 실측).
 
@@ -47,7 +50,7 @@ GPT 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령 실�
 
 프록시의 도구 호출 변환은 실측으로 확인했다. 혼합 세션에서 gpt-worker가 파일 작업을 정확히 수행했다(같은 실측에서 서브에이전트의 *보고 문장*에는 오탈자가 있었는데 파일 산출물은 정확했다. 자기 신고를 게이트로 삼지 말라는 규칙의 표본이다).
 
-게이트가 없으므로 백엔드 로직 잡부 전용이다. 프론트엔드에는 어떤 형태로든 투입하지 않는다(SKILL_ko.md의 역할 경계 규정).
+게이트가 없으므로 `gpt-worker`는 백엔드 로직 잡부 전용이고 프론트엔드에는 어떤 형태로든 투입하지 않는다. 그리는 일은 `astra-worker`가 받는다(SKILL_ko.md의 역할 경계 규정).
 
 ## 4. 메인 루프 모델 (`tools/gpt-cc.ps1`)
 
@@ -66,7 +69,7 @@ ANTHROPIC_BASE_URL is set and does not point at api.anthropic.com ...
 
 ## 모델 이름과 두 문법
 
-모델은 Daybreak Blue 하나, effort는 `high`(기본)와 `max`(절망적으로 어려운 문제 전용) 둘만 쓴다. 그런데 **형태마다 지정 문법이 다르다.** 섞어 쓰면 조용히 기본값으로 떨어지거나 404가 난다.
+모델은 Daybreak Blue(`gpt-daybreak-blue`)와 ASTRA(`gpt-6-astra`) 둘, effort는 `high`(기본)와 `max`(절망적으로 어려운 문제 전용) 둘만 쓴다. 그런데 **형태마다 지정 문법이 다르다.** 섞어 쓰면 조용히 기본값으로 떨어지거나 404가 난다.
 
 **릴레이**는 프롬프트 첫 줄에 지시 줄로 준다. 모델 이름에 effort를 붙이지 않는다.
 
@@ -75,21 +78,24 @@ GPT-MODEL: gpt-daybreak-blue
 GPT-EFFORT: high
 ```
 
-생략하면 릴레이 기본값이 그대로 daybreak-blue/high라 방침과 일치한다.
+생략하면 릴레이 기본값이 그대로 daybreak-blue/high라 방침과 일치한다. 화면이나 디자인, i18n 카탈로그에 대한 소견이 필요하면 `GPT-MODEL: gpt-6-astra`로 준다.
 
 **직접 워커·워커·메인**은 모델 이름 하나에 effort를 접미사로 붙인다.
 
 ```
 gpt-daybreak-blue-<effort>      예: gpt-daybreak-blue-high, gpt-daybreak-blue-max
+gpt-6-astra-<effort>            예: gpt-6-astra-high, gpt-6-astra-max
 ```
 
-`gpt-worker` 에이전트의 frontmatter `model:`, 런처와 `gpt-agent.ps1`이 세팅하는 `ANTHROPIC_MODEL`이 이 형태다(직접 워커는 `-Effort high|max` 파라미터로 준다). 접미사를 빼면 프록시가 환경변수 `GPT_EFFORT`(기본 high)를 쓴다.
+`gpt-worker`와 `astra-worker`의 frontmatter `model:`, 런처와 `gpt-agent.ps1`이 세팅하는 `ANTHROPIC_MODEL`이 이 형태다(직접 워커는 `-Model daybreak|astra`와 `-Effort high|max`로 받아 슬러그를 만든다). 접미사를 빼면 프록시가 환경변수 `GPT_EFFORT`(기본 high)를 쓴다. ASTRA는 `ultra`를 HTTP 400으로 거절하고, 프록시가 낡은 codex 버전을 적어 보내면 아예 답하지 않으므로 `GPT_CODEX_VERSION`을 최신으로 둔다.
 
 **메인 모델은 `/model`로 바꿀 수 없다.** 모델을 고르는 일이 아니라 엔드포인트를 갈아끼우는 일이기 때문이다. 런처는 `ANTHROPIC_BASE_URL`을 프록시로 돌린 뒤 `claude`를 띄우고, 그 값은 프로세스 시작 시점에 정해진다. 이미 돌고 있는 일반 세션에서 `/model gpt-daybreak-blue-high`를 쳐도 요청이 진짜 Anthropic으로 가 404가 난다. GPT를 메인으로 쓰려면 런처로 **새 세션**을 띄운다.
 
 ## 역할별로 형태를 고르기
 
 **백엔드 구현은 시키지 않아도 형태 2/3이 맡는다.** 릴레이 GPT는 도구가 없어 코드베이스도 웹도 뒤지지 못한다. 형태 2/3에는 WebSearch와 WebFetch가 있다. 일반 세션이면 `gpt-agent.ps1`, 프록시 세션이면 `gpt-worker`가 맡는다. Claude(Explore)와 분담해도 된다.
+
+**간단하지 않은 그림도 시키지 않아도 ASTRA가 맡는다(2026-09-05).** 새 뷰, 컴포넌트 묶음, 레이아웃이나 스타일 체계, 목업, 갤러리 페이지, i18n 키 뭉치는 Claude가 설계 방향을 정한 뒤 일반 세션이면 `gpt-agent.ps1 -Model astra`, 프록시 세션이면 `astra-worker`로 넘긴다. 디프 검토와 게이트는 Claude가 하고, 문구 하나나 색 하나 같은 사소한 수정은 Claude가 직접 한다.
 
 **릴레이는 검수, 아니면 GPT가 쓰면 안 되는 일에 쓴다.** 붙여 준 코드나 디프의 리뷰·교차검증·2차 의견, 그리고 GPT에 쓰기 권한을 주면 안 되는 과제. 그런 일에는 자식 claude를 띄울 이유가 없다. 구현을 릴레이로 받지는 않는다.
 
@@ -100,5 +106,5 @@ gpt-daybreak-blue-<effort>      예: gpt-daybreak-blue-high, gpt-daybreak-blue-m
 - 일반 세션(브릿지 포함)에서 GPT가 파일을 직접 뒤지고 고쳐야 한다 → **직접 워커(`gpt-agent.ps1`)**.
 - 붙여 준 코드에 대한 소견·교차검증만 필요하다 → **릴레이**.
 - 로컬에서 새 세션을 띄울 수 있고, 대화 안에서 Agent()로 GPT와 병렬 협업하고 싶다 → **혼합 세션(`gpt-cc.ps1 -Main claude`) + 워커**.
-- 프론트엔드 작업이다 → **어느 형태도 아니다.** Claude가 직접 한다(SKILL_ko.md의 절대 금지).
+- 사소하지 않은 그림이나 i18n 노동이다 → **ASTRA**(`gpt-agent.ps1 -Model astra`, 프록시 세션이면 `astra-worker`). 설계 방향은 Claude가 먼저 정하고 디프도 Claude가 본다. Daybreak는 여전히 화면에 손대지 않는다.
 - 세션 전체를 GPT로 굴려보고 싶다 → **메인 모델(`gpt-cc.ps1`)**.

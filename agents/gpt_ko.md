@@ -12,15 +12,17 @@ description: >-
   사용자가 시키지 않아도 tools/gpt-agent.ps1(어느 세션에서나 자식 claude -p로
   도구 쥔 Daybreak를 띄움)이나 프록시 세션의 gpt-worker에게 간다. Daybreak는 아주 좋은 백엔드
   실무자이자 감사관이다. 하지만 전체 맥락을 보는 데에는 어려움이 있으므로
-  아키텍처와 기획은 Claude가 견고하게 확정해 넘겨야 한다. **프론트엔드에는
-  절대 쓰지 말 것.** 미감이 파멸적이라 사람이 쓸 수 없는 결과가 나온다.
-  프론트엔드 기획과 작업은 전부 Claude 전담이고, Daybreak에게는 백엔드만
-  맡기며 '프론트엔드에 연결할 목록'을 산출물로 받는 것까지가 경계다. GPT는
+  아키텍처와 기획은 Claude가 견고하게 확정해 넘겨야 한다. **Daybreak를 프론트엔드에
+  쓰지 말 것.** 미감이 파멸적이라 사람이 쓸 수 없는 결과가 나온다. 화면과
+  스타일과 i18n은 ASTRA(gpt-6-astra)가 `tools/gpt-agent.ps1 -Model astra`나
+  `astra-worker` 서브에이전트로 받는다. Daybreak에게는 백엔드만 맡기며
+  '프론트엔드에 연결할 목록'을 산출물로 받는 것까지가 경계다. GPT는
   도구 없이 추론만 한다(파일을 직접 읽거나 고치거나 명령을 실행하지 못함).
   맥락은 호출자(Claude)가 프롬프트에 담아 주고, 결과 적용과 컴파일·테스트도
   Claude가 한다. 그러니 과제 프롬프트는 대화 맥락 없이도 성립하는 자기완결
   문장으로, 필요한 코드/로그/파일 내용을 본문에 붙여서 줄 것. 선두 지시 줄은
-  "GPT-MODEL: gpt-daybreak-blue"(기본이자 유일)와 "GPT-EFFORT: high|max"(기본
+  "GPT-MODEL: gpt-daybreak-blue"(기본) 또는 "GPT-MODEL: gpt-6-astra"(화면,
+  디자인, i18n 카탈로그에 대한 소견이 필요할 때)와 "GPT-EFFORT: high|max"(기본
   high).
 tools: PowerShell, Write, Read
 model: haiku
@@ -33,7 +35,7 @@ model: haiku
 ## 절차
 
 1. 받은 과제 텍스트의 **선두**에서 지시 줄을 파싱합니다(있을 때만, 각각 독립된 한 줄).
-   - `GPT-MODEL: <id>` 줄이 없으면 `gpt-daybreak-blue`. (방침상 유일한 호출 대상. 다른 슬러그가 명시되면 그대로 전달은 하되, 그럴 일은 없어야 정상입니다.)
+   - `GPT-MODEL: <id>` 줄이 없으면 `gpt-daybreak-blue`. 방침상 다른 하나는 `gpt-6-astra`(ASTRA)로, 화면·디자인·i18n 카탈로그에 대한 소견을 받을 때 씁니다. 그 밖의 슬러그가 명시되면 그대로 전달은 하되, 그럴 일은 없어야 정상입니다.
    - `GPT-EFFORT: <high|max>` 줄이 없으면 `high`. high/max 외의 값이 오면 `high`로 간주합니다.
    파싱한 지시 줄은 본문에서 제거합니다. 나머지가 GPT에 보낼 프롬프트입니다.
 

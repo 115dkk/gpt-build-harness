@@ -1,20 +1,22 @@
-# GPT 빌드 하네스 (Daybreak Blue)
+# GPT 빌드 하네스 (Daybreak Blue + ASTRA)
 
 > 영어 정본 `SKILL.md`의 한국어 역본이다. Claude가 읽는 문서는 전부 영어를 정본으로 두고(토큰이 훨씬 덜 든다), 한국어 역본은 읽기용으로 저장소에만 둔다. 스킬 메타데이터(frontmatter)는 정본에 있다. `references/`도 마찬가지로 영어가 정본이고 한국어는 `*_ko.md`로 나란히 둔다.
 
-Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡부로 붙여 구현·검증 노동을 위임하고 Claude는 아키텍처·기획·적용·판정을 쥐는 방식이다. 호출은 ChatGPT **구독 쿼터**를 쓰므로 Claude 토큰을 아낀다.
+Claude 혼자 큰 구현을 다 태우는 대신, GPT를 잡부로 붙여 구현·검증 노동을 위임하고 Claude는 아키텍처와 설계 방향, 적용, 판정을 쥐는 방식이다. 호출은 ChatGPT **구독 쿼터**를 쓰므로 Claude 토큰을 아낀다.
 
 이 문서는 개요다. 형태별 상세는 `references/`에 있다. **실행 스크립트(릴레이·프록시·런처·에이전트)는 이 저장소 소스에 없고, 릴리즈 에셋 `gpt-build-harness-tools.zip`으로 배포한다.**
 
 > 구판 문서의 luna/sol/terra 티어표, effort 실측표, 프롬프트 A/B 배터리 등 'GPT 사용법' 계열 내용은 환각이 심해 2026-08-19에 **전면 폐기했다.** 아래 방침이 그 자리를 대신하는 정본이다.
 
-## 모델 방침 (Daybreak Blue 하나)
+## 모델 방침 (모델 둘, 각자의 일)
 
-**Daybreak Blue만 부른다.** 최고 성능 모델이면서 할당량 가성비가 압도적이라, 다른 모델(luna/sol/terra 등)을 부를 이유가 없다. GPT-5.6 Sol의 새로운 튜닝 버전이다.
+**백엔드 노동은 Daybreak Blue가 하고, 그림은 ASTRA가 그린다.** 그 밖의 모델(luna/sol/terra와 5.x 계열)은 부르지 않는다.
 
-- **슬러그는 `gpt-daybreak-blue`, 버전 접두사가 없다.** 2026-08-19 codex responses 백엔드 실측으로 확인했다(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak` 등 변형은 전부 HTTP 400, `gpt-daybreak-blue`만 200).
-- **effort는 `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** 릴레이 스크립트·프록시·런처의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
-- 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 워커·메인의 `gpt-daybreak-blue-high` 접미사형)은 `references/three-forms_ko.md`.
+- **Daybreak Blue의 슬러그는 `gpt-daybreak-blue`이고 버전 접두사가 없다.** 2026-08-19 codex responses 백엔드 실측으로 확인했다(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak` 등 변형은 전부 HTTP 400, `gpt-daybreak-blue`만 200). GPT-5.6 Sol의 튜닝 버전이고, 백엔드 노동에서는 구독 쿼터를 덜 쓰면서 성능이 같으므로 계속 기본값이다.
+- **ASTRA의 슬러그는 `gpt-6-astra`다**(GPT-6 Astra, 2026-09-03 공개). 2026-09-05에 같은 백엔드로 실측했다. 이 슬러그만 200을 돌려주고 응답의 model도 `gpt-6-astra`로 오며 `gpt-6`, `gpt-astra`, `gpt-6-astra-latest`는 전부 HTTP 400이다. 화면과 i18n 카탈로그, 그리고 Daybreak가 막히는 백엔드 문제를 이쪽으로 보낸다.
+- **effort는 `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** ASTRA는 low부터 max까지 받지만 `ultra`는 HTTP 400으로 거절한다(2026-09-05 실측). Daybreak는 `ultra`도 받는다. 릴레이 스크립트·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
+- **ASTRA는 `version` 헤더를 본다.** 낡은 CLI 버전을 적어 보내면 백엔드가 Codex를 올리라며 HTTP 400을 준다. 프록시가 보내던 0.144.1이 그렇게 거절당했고, 지금은 0.153.4를 보낸다. `GPT_CODEX_VERSION`을 설치된 codex CLI 버전 이상으로 두고 CLI도 최신으로 유지한다(`codex update`, 데스크탑 앱은 스토어로 갱신한다).
+- 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 직접 워커의 `-Model daybreak|astra`, 워커·메인의 `gpt-daybreak-blue-high`와 `gpt-6-astra-high` 접미사형)은 `references/three-forms_ko.md`.
 
 ## 역할 경계 (무엇을 맡기고 무엇을 쥐나)
 
@@ -26,14 +28,22 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 - **CI/CD 파이프라인 설계도 Claude 몫이다.** 전체 맥락 그 자체인 작업이라 같은 이유로 위임하지 않는다(개별 스크립트 구현·검토는 위임해도 된다).
 - **감사(audit) 용도로는 적극 쓴다.** 완성된 백엔드 코드·diff를 붙여 결함 지적, 경계 조건 점검, 2차 의견을 받는 것은 Daybreak가 잘하는 일이다. 단 소견은 입력이지 결론이 아니다. 채택 판정과 실제 검증(컴파일·테스트)은 Claude가 한다.
 
-**프론트엔드에는 절대 써서는 안 된다.** 지나칠 정도로 미감이 파멸적이라 사람이 쓸 수 없는 결과물이 나온다. 이 금지에는 예외가 없다. 구판 문서가 허용하던 '확정된 디자인의 렌더 번역' 같은 우회 위임도 폐기했다. **프론트엔드는 기획도 작업도 전부 Claude가 전담한다.**
+**Daybreak는 프론트엔드에 절대 써서는 안 된다.** 지나칠 정도로 미감이 파멸적이라 사람이 쓸 수 없는 결과물이 나온다. 이 모델에 대한 금지에는 예외가 없다.
+
+**대신 ASTRA가 그린다. Claude는 손으로 그리지 않는다(2026-09-05).** ASTRA는 화면을 맡길 만하니, 간단하지 않은 화면을 Claude가 손으로 짜는 것은 낭비다.
+
+- **설계 방향은 Claude가 정한다.** 그 화면이 무엇을 위한 것인지, 배치의 의도, 상태, 토큰(색, 여백, 모서리, 타이포 스케일, 모션), 인터페이스 id와 이름이 그것이다. 이것은 결정이지 그리기가 아니므로 위임하지 않는다.
+- **그리기는 ASTRA가 한다.** 컴포넌트, 레이아웃, 스타일, 목업, 갤러리 페이지, 그리고 i18n 카탈로그 노동(키 추가와 동기화, 자리표시자 집합 맞추기, 카탈로그 게이트 실행)이 여기 들어간다.
+- **디프 검토와 게이트는 Claude가 한다.** 백엔드 위임과 같다. ASTRA의 자기 신고는 게이트가 아니다.
+- **사소한 수정은 Claude가 직접 한다.** 문구 하나, 색 하나, 컴포넌트 한 곳의 몇 줄이면 워커를 띄우는 비용이 더 크다.
 
 ## 기본 위임 (2026-09-04)
 
 백엔드 일은 **시키지 않아도** Daybreak에게 간다. 사용자는 매번 "GPT 워커를 써라"라고 적는 일을 번거로워하므로, 과제가 백엔드 구현(서비스, 네이티브 코드, 스크립트, 테스트 보조 코드처럼 사용자에게 보이는 화면이 없는 것)이면 Claude가 당연히 위임하고 그 사실을 한 줄로 알린다.
 
 - **기본 형태:** 일반 세션에서는 직접 워커(`gpt-agent.ps1`), 프록시 세션에서는 `gpt-worker`.
-- **Claude가 쥐는 것:** 설계(모듈 경계, 타입과 시그니처, 오류 정책), 작업서, 디프 검토, 포맷·린트·테스트 게이트, 커밋과 PR. 프론트엔드와 CI/CD 설계는 절대 위임하지 않는다.
+- **간단하지 않은 그림도 같은 방식으로 ASTRA에 간다(2026-09-05).** 일반 세션에서는 `gpt-agent.ps1 -Model astra`, 프록시 세션에서는 `astra-worker`. 새 뷰, 컴포넌트 묶음, 레이아웃이나 스타일 체계, 목업, 갤러리 페이지, i18n 키 뭉치는 설계 방향을 정한 뒤 당연히 위임한다.
+- **Claude가 쥐는 것:** 설계 방향, 아키텍처(모듈 경계, 타입과 시그니처, 오류 정책), 작업서, 디프 검토, 포맷·린트·테스트 게이트, 커밋과 PR. CI/CD 설계는 절대 위임하지 않는다.
 - **Claude가 직접 하는 것:** 한 파일 안의 짧은 수정, 설계를 정하는 것이 곧 구현인 변경, 워커 결과의 손질. 워커를 띄우는 비용이 일 자체보다 클 때다.
 - **릴레이(`gpt` 에이전트)의 용도는 둘뿐이다.** 완성된 코드나 디프의 검수(리뷰, 교차검증, 2차 의견), 그리고 GPT에 쓰기 권한을 주면 안 되는 일(민감한 트리, 되돌리기 어려운 변경). 구현을 릴레이로 받아 Claude가 옮겨 적지는 않는다.
 
@@ -43,7 +53,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 
 1. Claude가 아키텍처·인터페이스를 확정하고 백엔드 전체(또는 모듈 단위)를 Daybreak에 위임한다.
 2. Daybreak가 백엔드를 구현하고, 산출물과 함께 **'프론트엔드에 연결할 목록'**(엔드포인트/함수 시그니처/이벤트/설정 키)을 정리해 돌려준다. 위임 프롬프트에서 이 목록을 명시적으로 요구할 것.
-3. Claude가 그 목록을 받아 프론트엔드 기획·구현·배선을 전담하고, 통합 빌드·테스트로 판정한다.
+3. Claude가 그 목록을 받아 설계 방향과 배선을 쥐고, 사소하지 않은 그리기는 ASTRA에 넘긴 뒤 통합 빌드·테스트로 판정한다.
 
 ## 위임 프롬프트
 
@@ -57,10 +67,10 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 
 1. **오라클 릴레이 (`gpt` 에이전트)**: Daybreak는 도구 없이 추론만 한다. 붙여 준 코드·로그에 대한 소견·교차검증 전용이다. **어느 세션에서나 즉시** 되고 Claude 게이트를 구조적으로 강제하지만, 맥락을 전부 붙여 줘야 하는 갑갑함이 있다. 도구가 필요하면 형태 2로 간다.
 2. **직접 워커 (`tools/gpt-agent.ps1`)**: haiku 껍데기 없이, **어느 세션(브릿지 포함)에서든** 자식 `claude -p`를 프록시로 물려 Daybreak가 직접 도구(Read/Edit/Write/Grep/Glob에 WebSearch·WebFetch까지, `-AllowBash` 옵트인. 검색 MCP 도구 이름은 `-Tools`나 `GPT_AGENT_EXTRA_TOOLS`로 더한다)를 쥐게 한다. 일반 세션에서 도구 쥔 GPT가 필요할 때의 **기본 선택**이다(2026-08-20 실측 검증).
-3. **워커 서브에이전트 (`gpt-worker` 에이전트)**: Daybreak 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령을 직접 한다. `ANTHROPIC_BASE_URL`이 프록시를 가리키는 세션 전용이다. **혼합 세션**(`gpt-cc.ps1 -Main claude`)이면 메인 루프는 Claude가 구독 OAuth 그대로 유지하면서(패스스루 실측 확인, API 키 불필요) 대화 안에서 `Agent(gpt-worker)`로 네이티브 협업을 한다.
+3. **워커 서브에이전트 (Daybreak는 `gpt-worker`, ASTRA는 `astra-worker`)**: GPT 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령을 직접 한다. `ANTHROPIC_BASE_URL`이 프록시를 가리키는 세션 전용이다. **혼합 세션**(`gpt-cc.ps1 -Main claude`)이면 메인 루프는 Claude가 구독 OAuth 그대로 유지하면서(패스스루 실측 확인, API 키 불필요) 대화 안에서 `Agent(gpt-worker)`로 네이티브 협업을 한다.
 4. **메인 루프 모델 (런처 `gpt-cc.ps1`)**: Claude Code 전체를 Daybreak로 돌린다. **500k 토큰에서 자동압축**하도록 런처가 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`을 설정한다(settings 키 `autoCompactWindow`와 같은 노브다. 미인식 모델의 기본 윈도우 폴백을 덮는다).
 
-**모델 지정 문법은 형태마다 다르다.** 릴레이는 프롬프트 첫 줄의 지시 줄(`GPT-MODEL: gpt-daybreak-blue` + `GPT-EFFORT: high|max`)로, 직접 워커는 `-Effort high|max` 파라미터로, 워커·메인은 effort를 접미사로 붙인 모델 id(`gpt-daybreak-blue-high`, 절망적으로 어려우면 `gpt-daybreak-blue-max`)로 준다. 메인 모델은 `/model`로 바꾸지 못한다. 엔드포인트를 갈아끼우는 일이라 런처로 새 세션을 띄워야 한다.
+**모델 지정 문법은 형태마다 다르다.** 릴레이는 프롬프트 첫 줄의 지시 줄(`GPT-MODEL: gpt-daybreak-blue` 또는 `gpt-6-astra`에 `GPT-EFFORT: high|max`)로, 직접 워커는 `-Model daybreak|astra`와 `-Effort high|max` 파라미터로, 워커·메인은 effort를 접미사로 붙인 모델 id(`gpt-daybreak-blue-high`, `gpt-6-astra-high`, 절망적으로 어려우면 `-max` 형)로 준다. 메인 모델은 `/model`로 바꾸지 못한다. 엔드포인트를 갈아끼우는 일이라 런처로 새 세션을 띄워야 한다.
 
 **코드와 웹을 뒤지는 일도 이제 GPT에 맡길 수 있다.** 릴레이는 도구가 없어 찾아보지 못하지만, 직접 워커(형태 2)는 어느 세션에서든 Grep/Glob/Read로 코드베이스를 직접 뒤지고, v0.4.0부터는 WebSearch가 프록시를 거쳐 codex 쪽 웹 검색으로 실행되므로 기억에 기대지 않고 문서를 확인한다. Claude(Explore)와 분담하면 된다.
 
@@ -74,5 +84,6 @@ Claude 혼자 큰 구현을 다 태우는 대신, Daybreak Blue를 백엔드 잡
 - 프록시는 codex responses에 `max_output_tokens`를 보내면 안 된다(400).
 - 워커·메인 형태는 프록시 세션 전용이다. 일반 세션에서 `gpt-daybreak-blue-*`를 부르면 404가 나므로, 일반 세션에서는 직접 워커(`gpt-agent.ps1`)를 쓴다.
 - `claude -p`의 `--allowedTools`는 가변 인자라 뒤따르는 위치 프롬프트를 삼킨다. 과제는 stdin으로 파이프하고, 다른 `claude` 인자는 모두 그 앞에 둔다(`gpt-agent.ps1`이 둘 다 처리한다).
+- **ASTRA는 프록시가 보내는 `version` 헤더에 걸린다.** 값이 낡으면 Codex를 올리라는 HTTP 400이 온다. codex CLI와 데스크탑 앱을 최신으로 두고 `GPT_CODEX_VERSION`도 맞춘다.
 - 함수 도구는 codex에 `strict: false`로 보낸다. 엄격 함수 호출에서는 GPT가 선택 속성까지 값을 지어내 채우고(날짜, 필터), 도구가 그 호출을 거부한다. 프록시가 엄격 모드를 끈다(v0.4.0).
 - **메인 모델은 원격 조종 브릿지로 못 띄운다.** `claude remote-control`이 `ANTHROPIC_BASE_URL`을 검사해 api.anthropic.com이 아니면 거절한다. 폰 조종이 필요하면 일반 브릿지에 릴레이를 붙여 간다.

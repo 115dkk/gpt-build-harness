@@ -1,12 +1,12 @@
 # The four forms of the GPT labourer
 
-Two questions decide the form: **does the job need GPT to hold tools itself**, and **is this session pointed at the proxy base_url**. Whichever form you pick, the model called is always Daybreak Blue (`gpt-daybreak-blue`).
+Two questions decide the form: **does the job need GPT to hold tools itself**, and **is this session pointed at the proxy base_url**. Whichever form you pick, the model is one of two: Daybreak Blue (`gpt-daybreak-blue`) for backend labour, ASTRA (`gpt-6-astra`) for drawing, i18n catalogues and the problems Daybreak stalls on.
 
 | Form | Tools | Where it works | Whose hands | When |
 |---|---|---|---|---|
 | Oracle relay | none (reasoning only) | any session | Claude's | pure reasoning over pasted context: review notes, cross-checks, second opinions |
-| Direct worker (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob/WebSearch/WebFetch (+Bash and MCP opt-in) | **any session**, bridge included | GPT's own | the **default choice** when an ordinary session needs a tool-holding backend labourer |
-| Worker subagent (`gpt-worker`) | Read/Write/Edit/Bash/… | proxy sessions (gpt-cc, including `-Main claude` mixed) | GPT's own | parallel and background collaboration through the native Agent() UX |
+| Direct worker (`gpt-agent.ps1`) | Read/Edit/Write/Grep/Glob/WebSearch/WebFetch (+Bash and MCP opt-in) | **any session**, bridge included | GPT's own | the **default choice** when an ordinary session needs a tool-holding labourer; `-Model astra` for drawing and i18n |
+| Worker subagent (`gpt-worker`, `astra-worker`) | Read/Write/Edit/Bash/… | proxy sessions (gpt-cc, including `-Main claude` mixed) | GPT's own | parallel and background collaboration through the native Agent() UX; `astra-worker` is the drawing one |
 | Main loop model | all of Claude Code's tools | proxy sessions (gpt-cc) | GPT's own | the experiment of running a whole session on GPT |
 
 ## 1. Oracle relay (the `gpt` agent / `tools/gpt-relay.ps1`)
@@ -21,6 +21,7 @@ This runs a tool-holding Daybreak **in any session**, with no haiku wrapper (ver
 
 ```powershell
 & "$env:USERPROFILE\.claude\tools\gpt-agent.ps1" -Task "<self-contained task, absolute paths>"
+& ... -Model astra        # ASTRA (gpt-6-astra): drawing, i18n, hardest backend
 & ... -Effort max          # only for hopelessly hard problems
 & ... -AllowBash           # allow the Bash tool (an unsupervised shell, opt in deliberately)
 & ... -TaskFile big.txt    # long tasks go in a file
@@ -36,9 +37,11 @@ This runs a tool-holding Daybreak **in any session**, with no haiku wrapper (ver
 - The "unrecognized model" warning the child prints is harmless (the context window is pinned to 500k through the env).
 - Auto-compact at 500k (`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`) is applied by default.
 
-## 3. Worker subagent (`gpt-worker`)
+## 3. Worker subagent (`gpt-worker` for Daybreak, `astra-worker` for ASTRA)
 
-GPT is the subagent's own LLM, so it reads files, edits them and runs commands directly. It only works in sessions where `ANTHROPIC_BASE_URL` points at `gpt-proxy.mjs`. Call it from an ordinary session and `gpt-daybreak-blue-*` goes to the real Anthropic and dies at once (measured: "model may not exist" API error). Use form 2 in that case.
+GPT is the subagent's own LLM, so it reads files, edits them and runs commands directly. It only works in sessions where `ANTHROPIC_BASE_URL` points at `gpt-proxy.mjs`. Call it from an ordinary session and `gpt-daybreak-blue-*` or `gpt-6-astra-*` goes to the real Anthropic and dies at once (measured: "model may not exist" API error). Use form 2 in that case.
+
+The two subagents are the same shape with different models and different boundaries: `gpt-worker` is the backend labourer, `astra-worker` is the one sent at screens and i18n catalogues.
 
 There are two kinds of proxy session (both verified 2026-08-20).
 
@@ -47,7 +50,7 @@ There are two kinds of proxy session (both verified 2026-08-20).
 
 The proxy's tool-call translation has been verified in practice: in a mixed session gpt-worker performed file work correctly. (In that same run the subagent's *report sentence* contained a typo while the file output was correct, which is the sample behind the rule about never gating on a self-report.)
 
-There is no gate here, so use it only as a backend logic labourer. It is never put on frontend work in any form (see the role boundary in SKILL.md).
+There is no gate here, so `gpt-worker` is used only as a backend logic labourer and never on frontend work; drawing goes to `astra-worker` instead (see the role boundary in SKILL.md).
 
 ## 4. Main loop model (`tools/gpt-cc.ps1`)
 
@@ -64,9 +67,9 @@ ANTHROPIC_BASE_URL is set and does not point at api.anthropic.com ...
 
 This applies to mixed sessions (`-Main claude`) as well; a bridge session cannot be attached to the proxy. **When a bridge session needs a tool-holding GPT, form 2 (`gpt-agent.ps1`) is the only way** (the child claude is not a bridge, so it has no such restriction).
 
-## The model name and its two syntaxes
+## The model names and their two syntaxes
 
-There is one model, Daybreak Blue, and two efforts: `high` (default) and `max` (hopelessly hard problems only). **The syntax for naming them differs by form**, and mixing them up either falls back to a default silently or returns a 404.
+There are two models, Daybreak Blue (`gpt-daybreak-blue`) and ASTRA (`gpt-6-astra`), and two efforts: `high` (default) and `max` (hopelessly hard problems only). **The syntax for naming them differs by form**, and mixing them up either falls back to a default silently or returns a 404.
 
 **The relay** takes directive lines at the top of the prompt. The effort is not attached to the model name.
 
@@ -75,21 +78,24 @@ GPT-MODEL: gpt-daybreak-blue
 GPT-EFFORT: high
 ```
 
-Omit them and the relay's own defaults are daybreak-blue/high, which matches policy anyway.
+Omit them and the relay's own defaults are daybreak-blue/high, which matches policy anyway. Pass `GPT-MODEL: gpt-6-astra` when the opinion wanted is about a screen, a design or an i18n catalogue.
 
-**The direct worker, the worker subagent and the main model** take one model name with the effort as a suffix.
+**The direct worker, the worker subagents and the main model** take one model name with the effort as a suffix.
 
 ```
 gpt-daybreak-blue-<effort>      e.g. gpt-daybreak-blue-high, gpt-daybreak-blue-max
+gpt-6-astra-<effort>            e.g. gpt-6-astra-high, gpt-6-astra-max
 ```
 
-This is the form used by the `gpt-worker` agent's frontmatter `model:` and by the `ANTHROPIC_MODEL` that the launcher and `gpt-agent.ps1` set (the direct worker also accepts an `-Effort high|max` parameter). Drop the suffix and the proxy falls back to the `GPT_EFFORT` environment variable (default high).
+This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:` and by the `ANTHROPIC_MODEL` that the launcher and `gpt-agent.ps1` set (the direct worker takes `-Model daybreak|astra` and `-Effort high|max` and builds the slug itself). Drop the suffix and the proxy falls back to the `GPT_EFFORT` environment variable (default high). ASTRA rejects `ultra` with HTTP 400, and it also refuses to answer at all when the proxy claims an old codex version, so keep `GPT_CODEX_VERSION` current.
 
 **The main model cannot be changed with `/model`.** It is not a matter of choosing a model but of swapping the endpoint. The launcher points `ANTHROPIC_BASE_URL` at the proxy and then starts `claude`, and that value is fixed when the process starts. Typing `/model gpt-daybreak-blue-high` in an already-running ordinary session sends the request to the real Anthropic and returns 404. To run GPT as the main model, start a **new session** from the launcher.
 
 ## Picking a form by role
 
 **Backend implementation goes to forms 2 and 3 by default, without the user asking.** The relay GPT has no tools and cannot search the codebase at all, nor the web; forms 2 and 3 have WebSearch and WebFetch. In an ordinary session that work goes to `gpt-agent.ps1`; in a proxy session, to `gpt-worker`. Splitting it with Claude (Explore) is fine too.
+
+**Non-trivial drawing goes to ASTRA by default, without the user asking (2026-09-05).** A new view, a component set, a layout or style system, a mockup, a gallery page or a batch of i18n keys goes to `gpt-agent.ps1 -Model astra` in an ordinary session and to `astra-worker` in a proxy session, once Claude has settled the design direction. Claude reviews the diff and runs the gates, and keeps trivial edits (a label, a colour, a few lines in one component) for itself.
 
 **The relay is for audit, or for work where GPT must not write.** Review, cross-check and second opinions on pasted code or diffs, and tasks in which GPT may not hold write access: for those there is no reason to start a child claude. Implementation is not taken through the relay.
 
@@ -100,5 +106,5 @@ This is the form used by the `gpt-worker` agent's frontmatter `model:` and by th
 - GPT has to dig through and edit files in an ordinary session (bridge included) → **the direct worker (`gpt-agent.ps1`)**.
 - Only an opinion or a cross-check on pasted code is needed → **the relay**.
 - You can start a new local session and want parallel collaboration with GPT through Agent() inside the conversation → **a mixed session (`gpt-cc.ps1 -Main claude`) plus the worker**.
-- It is frontend work → **none of them.** Claude does it (the absolute prohibition in SKILL.md).
+- It is drawing or i18n labour beyond a trivial edit → **ASTRA** (`gpt-agent.ps1 -Model astra`, or `astra-worker` in a proxy session), with Claude settling the design direction first and reviewing the diff. Daybreak still never touches a screen.
 - You want to try running a whole session on GPT → **the main model (`gpt-cc.ps1`)**.

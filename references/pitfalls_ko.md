@@ -16,6 +16,13 @@ GPT는 파일을 못 읽고 못 쓰고 아무것도 실행하지 못한다. 맥�
 **모델 슬러그는 `gpt-daybreak-blue`다(2026-08-19 실측).**
 버전 접두사를 붙인 변형(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak`, `gpt-5.6-sol-daybreak-blue` 등)은 codex responses 백엔드가 전부 HTTP 400으로 거부한다. 릴레이·프록시·런처의 기본값이 이미 이 슬러그라 생략하면 안전하다.
 
+**ASTRA의 슬러그는 `gpt-6-astra`이고, `version` 헤더에 걸린다(2026-09-05 실측).**
+`gpt-6`, `gpt-astra`, `gpt-6-astra-latest`는 전부 HTTP 400("not supported when using Codex with a ChatGPT account")이고, `gpt-6-astra`만 200을 돌려주며 응답의 model에도 같은 이름이 온다. 함께 확인한 것이 셋 더 있다.
+
+- **낡은 `version` 헤더는 거절당한다.** 프록시가 쓰던 0.144.1로는 백엔드가 `The 'gpt-6-astra' model requires a newer version of Codex. Please upgrade to the latest app or CLI and try again.`(HTTP 400)로 답한다. 0.153.4로 보내면 통과한다. `GPT_CODEX_VERSION`을 설치된 codex CLI 버전 이상으로 둔다.
+- **`ultra`는 이 모델의 effort가 아니다.** Astra는 400과 함께 지원 값 목록(none, minimal, low, medium, high, xhigh, max)을 돌려준다. Daybreak는 `ultra`를 받는다.
+- CLI와 데스크탑 앱을 최신으로 올린 뒤에도 이 계정의 `codex debug models` 목록에는 이 모델이 **없다**. 카탈로그와 responses 백엔드가 받아 주는 목록은 별개다. 카탈로그를 믿지 말고 백엔드로 찔러 본다.
+
 ## 에이전트·Workflow 결과 전달
 
 **HTML 엔티티 이스케이프는 표시 계층 현상이다. 손으로 복원하지 말 것.**

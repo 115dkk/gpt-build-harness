@@ -16,6 +16,13 @@ GPT cannot read a file, cannot write one, cannot run anything. The context (exis
 **The model slug is `gpt-daybreak-blue` (measured 2026-08-19).**
 Variants with a version prefix (`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak`, `gpt-5.6-sol-daybreak-blue` and so on) are all rejected by the codex responses backend with HTTP 400. The relay, the proxy and the launcher already default to this slug, so omitting it is safe.
 
+**ASTRA's slug is `gpt-6-astra`, and it is gated on the `version` header (measured 2026-09-05).**
+`gpt-6`, `gpt-astra` and `gpt-6-astra-latest` all return HTTP 400 ("not supported when using Codex with a ChatGPT account"); only `gpt-6-astra` returns 200, and the response echoes that same name. Two more measured facts about it:
+
+- **An old `version` header is refused.** With the proxy's old value of 0.144.1 the backend answered `The 'gpt-6-astra' model requires a newer version of Codex. Please upgrade to the latest app or CLI and try again.` (HTTP 400). Sending 0.153.4 works. Keep `GPT_CODEX_VERSION` at or above the installed codex CLI.
+- **`ultra` is not a valid effort for it.** Astra returns 400 listing the supported values (none, minimal, low, medium, high, xhigh, max), while Daybreak accepts `ultra`.
+- The model does **not** appear in `codex debug models` on this account even after updating the CLI and the Store app; the catalogue and what the responses backend accepts are two different lists. Probe the backend rather than trusting the catalogue.
+
 ## Getting results back from agents and Workflows
 
 **HTML entity escaping is a display-layer artefact. Do not restore it by hand.**

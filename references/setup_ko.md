@@ -8,13 +8,13 @@
 ## 네 형태 (요약)
 - **오라클 릴레이**: 도구 없는 추론. 어느 세션에서나 즉시 된다. 손은 Claude가 쥔다. 순수 소견 전용.
 - **직접 워커(`gpt-agent.ps1`)**: 자식 claude로 GPT가 도구를 쥔다. 웹 검색도 쥔다(프록시가 codex 웹 검색으로 실행한다). 어느 세션에서나(브릿지 포함) 된다. 일반 세션의 기본 잡부.
-- **워커 서브에이전트**: GPT가 직접 도구를 쥔다. 프록시 세션 전용(혼합 세션 `gpt-cc -Main claude` 포함).
+- **워커 서브에이전트**: GPT가 직접 도구를 쥔다. 프록시 세션 전용(혼합 세션 `gpt-cc -Main claude` 포함). `gpt-worker`가 Daybreak, `astra-worker`가 ASTRA다.
 - **메인 루프 모델**: 세션 전체를 GPT로 돌린다. 500k 자동압축(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`)은 런처가 건다.
 
 자세한 판단은 `three-forms_ko.md`.
 
 ## 모델 운용
-SKILL_ko.md의 모델 방침(Model policy)을 따른다. 요약하면 호출 모델은 `gpt-daybreak-blue`(GPT-5.6 Sol의 신규 튜닝판, 슬러그 2026-08-19 실측 확인) 하나이고, effort는 high가 기본이며 절망적으로 어려운 문제에만 max를 쓴다. 다른 모델·다른 effort는 쓰지 않는다. 릴레이·프록시·런처의 기본값이 전부 이 방침에 맞춰져 있다.
+SKILL_ko.md의 모델 방침(Model policy)을 따른다. 요약하면 모델은 둘이다. `gpt-daybreak-blue`(GPT-5.6 Sol의 튜닝판, 슬러그 2026-08-19 실측 확인)가 백엔드 노동을 하고, `gpt-6-astra`(GPT-6 Astra, 슬러그 2026-09-05 실측 확인)가 화면과 i18n 카탈로그, 그리고 Daybreak가 막히는 문제를 맡는다. effort는 high가 기본이며 절망적으로 어려운 문제에만 max를 쓰고, 다른 effort는 쓰지 않는다. 릴레이·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high다. ASTRA는 프록시의 `version` 헤더까지 최신이어야 하므로 codex CLI를 갱신해 둔다.
 
 ## 설치
 릴리즈에서 도구 zip을 받아 install 스크립트를 실행한다. 대상별 배치 위치와 절차는 README의 '설치'를 따른다. 도구의 상세 동작은 설치된 스크립트의 주석에 있다.
