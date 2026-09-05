@@ -14,7 +14,7 @@
 자세한 판단은 `three-forms_ko.md`.
 
 ## 모델 운용
-SKILL_ko.md의 모델 방침(Model policy)을 따른다. 요약하면 모델은 둘이다. `gpt-daybreak-blue`(GPT-5.6 Sol의 튜닝판, 슬러그 2026-08-19 실측 확인)가 백엔드 노동을 하고, `gpt-6-astra`(GPT-6 Astra, 슬러그 2026-09-05 실측 확인)가 화면과 i18n 카탈로그, 그리고 Daybreak가 막히는 문제를 맡는다. effort는 high가 기본이며 절망적으로 어려운 문제에만 max를 쓰고, 다른 effort는 쓰지 않는다. 릴레이·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high다. ASTRA는 프록시의 `version` 헤더까지 최신이어야 하므로 codex CLI를 갱신해 둔다.
+SKILL_ko.md의 모델 방침(Model policy)을 따른다. 요약하면 모델은 둘이다. `gpt-daybreak-blue`(GPT-5.6 Sol의 튜닝판, 슬러그 2026-08-19 실측 확인)가 백엔드 노동을 하고, `gpt-6-astra`(GPT-6 Astra, 슬러그 2026-09-05 실측 확인)가 화면과 i18n 카탈로그, 그리고 Daybreak가 막히는 문제를 맡는다. effort는 high가 기본이자 스윗스팟이고, 그 위로 `xhigh`와 `max`가 있다. Daybreak에서 max는 절망적으로 어려운 문제 전용이고 ASTRA의 두 단은 아직 측정하지 않았다. `low`와 `medium`은 쓰지 않는다. 릴레이·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high다. ASTRA는 프록시의 `version` 헤더까지 최신이어야 하므로 codex CLI를 갱신해 둔다.
 
 ## 설치
 릴리즈에서 도구 zip을 받아 install 스크립트를 실행한다. 대상별 배치 위치와 절차는 README의 '설치'를 따른다. 도구의 상세 동작은 설치된 스크립트의 주석에 있다.

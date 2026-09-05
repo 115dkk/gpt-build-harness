@@ -22,6 +22,7 @@ This runs a tool-holding Daybreak **in any session**, with no haiku wrapper (ver
 ```powershell
 & "$env:USERPROFILE\.claude\tools\gpt-agent.ps1" -Task "<self-contained task, absolute paths>"
 & ... -Model astra        # ASTRA (gpt-6-astra): drawing, i18n, hardest backend
+& ... -Effort xhigh        # ASTRA's unmeasured middle rung
 & ... -Effort max          # only for hopelessly hard problems
 & ... -AllowBash           # allow the Bash tool (an unsupervised shell, opt in deliberately)
 & ... -TaskFile big.txt    # long tasks go in a file
@@ -71,7 +72,7 @@ This applies to mixed sessions (`-Main claude`) as well; a bridge session cannot
 
 ## The model names and their two syntaxes
 
-There are two models, Daybreak Blue (`gpt-daybreak-blue`) and ASTRA (`gpt-6-astra`), and two efforts: `high` (default) and `max` (hopelessly hard problems only). **The syntax for naming them differs by form**, and mixing them up either falls back to a default silently or returns a 404.
+There are two models, Daybreak Blue (`gpt-daybreak-blue`) and ASTRA (`gpt-6-astra`), and three rungs of effort: `high` (default and the sweet spot), `xhigh` and `max`. On Daybreak `max` is for hopelessly hard problems only; on ASTRA the two rungs above high are open but unmeasured. **The syntax for naming them differs by form**, and mixing them up either falls back to a default silently or returns a 404.
 
 **The relay** takes directive lines at the top of the prompt. The effort is not attached to the model name.
 
@@ -89,7 +90,7 @@ gpt-daybreak-blue-<effort>      e.g. gpt-daybreak-blue-high, gpt-daybreak-blue-m
 gpt-6-astra-<effort>            e.g. gpt-6-astra-high, gpt-6-astra-max
 ```
 
-This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:` and by the `ANTHROPIC_MODEL` that the launcher and `gpt-agent.ps1` set (the direct worker takes `-Model daybreak|astra` and `-Effort high|max` and builds the slug itself). Drop the suffix and the proxy falls back to the `GPT_EFFORT` environment variable (default high). The endpoint refuses `ultra` for both models with HTTP 400 (it is a Codex client mode, not an effort value), and ASTRA refuses to answer at all when the proxy claims an old codex version, so keep `GPT_CODEX_VERSION` current.
+This is the form used by the `gpt-worker` and `astra-worker` frontmatter `model:` and by the `ANTHROPIC_MODEL` that the launcher and `gpt-agent.ps1` set (the direct worker takes `-Model daybreak|astra` and `-Effort high|xhigh|max` and builds the slug itself). Drop the suffix and the proxy falls back to the `GPT_EFFORT` environment variable (default high). The endpoint refuses `ultra` for both models with HTTP 400 (it is a Codex client mode, not an effort value), and ASTRA refuses to answer at all when the proxy claims an old codex version, so keep `GPT_CODEX_VERSION` current.
 
 **The main model cannot be changed with `/model`.** It is not a matter of choosing a model but of swapping the endpoint. The launcher points `ANTHROPIC_BASE_URL` at the proxy and then starts `claude`, and that value is fixed when the process starts. Typing `/model gpt-daybreak-blue-high` in an already-running ordinary session sends the request to the real Anthropic and returns 404. To run GPT as the main model, start a **new session** from the launcher.
 

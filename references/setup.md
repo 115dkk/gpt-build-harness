@@ -14,7 +14,7 @@ The tools use the local ChatGPT **subscription token** (the codex login cache). 
 For the detailed decision, see `three-forms.md`.
 
 ## Model operation
-Follow the model policy in SKILL.md. In short: two models and nothing else. `gpt-daybreak-blue` (the tuning of GPT-5.6 Sol; slug confirmed by measurement on 2026-08-19) does the backend labour, and `gpt-6-astra` (GPT-6 Astra; slug confirmed 2026-09-05) draws screens, does i18n catalogues and takes the problems Daybreak stalls on. Effort is high by default and max only for hopelessly hard problems; no other effort. The relay, the proxy, the launcher and the direct worker all default to daybreak-blue/high. ASTRA additionally needs the proxy's `version` header to be current, so keep the codex CLI updated.
+Follow the model policy in SKILL.md. In short: two models and nothing else. `gpt-daybreak-blue` (the tuning of GPT-5.6 Sol; slug confirmed by measurement on 2026-08-19) does the backend labour, and `gpt-6-astra` (GPT-6 Astra; slug confirmed 2026-09-05) draws screens, does i18n catalogues and takes the problems Daybreak stalls on. Effort is high by default and high is the sweet spot; `xhigh` and `max` are the rungs above it, reserved on Daybreak for hopelessly hard problems and still unmeasured on ASTRA. `low` and `medium` are not used. The relay, the proxy, the launcher and the direct worker all default to daybreak-blue/high. ASTRA additionally needs the proxy's `version` header to be current, so keep the codex CLI updated.
 
 ## Installation
 Download the tools zip from the release and run the install script. Placement and procedure per target follow the "Installation" section of the README. The detailed behaviour of each tool is in the comments of the installed script.

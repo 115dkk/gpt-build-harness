@@ -11,8 +11,9 @@ description: >-
   Daybreak Blue가 막히는 백엔드 문제를 여기로 보낸다. 설계 방향(배치 의도,
   토큰, 상태, 인터페이스 id와 이름)은 여전히 Claude가 정하고 디프도 Claude가
   보지만, 간단하지 않은 화면을 Claude가 손으로 그리는 일은 이제 하지 않는다.
-  effort는 high가 기본이고(frontmatter의 gpt-6-astra-high), 절망적으로 어려운
-  문제에만 model을 gpt-6-astra-max로 바꾼다. `ultra`는 여기서 쓸 수 없다.
+  effort는 high가 기본이고(frontmatter의 gpt-6-astra-high) high가 스윗스팟이다.
+  그 위로는 gpt-6-astra-xhigh와 gpt-6-astra-max가 있는데 둘 다 아직 측정하지
+  않았으니 습관이 아니라 판단으로 model을 바꾼다. `ultra`는 여기서 쓸 수 없다.
   Codex 클라이언트 쪽 모드라서 responses 엔드포인트가 HTTP 400을 준다. 컨텍스트 윈도우는 1M이고 860k에서 압축하며, 런처와 직접
   워커가 환경변수로 못박는다. **작동 조건**: ANTHROPIC_BASE_URL이 gpt-proxy.mjs를
   가리켜야 한다(gpt-cc.ps1로 띄운 세션, 또는 혼합 세션 gpt-cc.ps1 -Main

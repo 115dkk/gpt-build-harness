@@ -22,6 +22,7 @@ haiku 껍데기 없이, **어느 세션에서든** 도구를 쥔 Daybreak를 부
 ```powershell
 & "$env:USERPROFILE\.claude\tools\gpt-agent.ps1" -Task "<자기완결 과제, 절대경로 사용>"
 & ... -Model astra        # ASTRA(gpt-6-astra): 그림, i18n, 가장 어려운 백엔드
+& ... -Effort xhigh        # ASTRA의 아직 측정되지 않은 중간 단
 & ... -Effort max          # 절망적으로 어려운 문제만
 & ... -AllowBash           # Bash 도구 허용 (무감독 셸, 의식적으로 옵트인)
 & ... -TaskFile big.txt    # 긴 과제는 파일로
@@ -71,7 +72,7 @@ ANTHROPIC_BASE_URL is set and does not point at api.anthropic.com ...
 
 ## 모델 이름과 두 문법
 
-모델은 Daybreak Blue(`gpt-daybreak-blue`)와 ASTRA(`gpt-6-astra`) 둘, effort는 `high`(기본)와 `max`(절망적으로 어려운 문제 전용) 둘만 쓴다. 그런데 **형태마다 지정 문법이 다르다.** 섞어 쓰면 조용히 기본값으로 떨어지거나 404가 난다.
+모델은 Daybreak Blue(`gpt-daybreak-blue`)와 ASTRA(`gpt-6-astra`) 둘이고, effort는 `high`(기본이자 스윗스팟), `xhigh`, `max` 세 단을 연다. Daybreak에서 `max`는 절망적으로 어려운 문제 전용이고, ASTRA는 high 위의 두 단이 열려 있으나 아직 측정하지 않았다. 그런데 **형태마다 지정 문법이 다르다.** 섞어 쓰면 조용히 기본값으로 떨어지거나 404가 난다.
 
 **릴레이**는 프롬프트 첫 줄에 지시 줄로 준다. 모델 이름에 effort를 붙이지 않는다.
 
@@ -89,7 +90,7 @@ gpt-daybreak-blue-<effort>      예: gpt-daybreak-blue-high, gpt-daybreak-blue-m
 gpt-6-astra-<effort>            예: gpt-6-astra-high, gpt-6-astra-max
 ```
 
-`gpt-worker`와 `astra-worker`의 frontmatter `model:`, 런처와 `gpt-agent.ps1`이 세팅하는 `ANTHROPIC_MODEL`이 이 형태다(직접 워커는 `-Model daybreak|astra`와 `-Effort high|max`로 받아 슬러그를 만든다). 접미사를 빼면 프록시가 환경변수 `GPT_EFFORT`(기본 high)를 쓴다. 엔드포인트는 두 모델 모두 `ultra`를 HTTP 400으로 거절한다(ultra는 effort 값이 아니라 Codex 클라이언트 쪽 모드다). ASTRA는 프록시가 낡은 codex 버전을 적어 보내면 아예 답하지 않으므로 `GPT_CODEX_VERSION`을 최신으로 둔다.
+`gpt-worker`와 `astra-worker`의 frontmatter `model:`, 런처와 `gpt-agent.ps1`이 세팅하는 `ANTHROPIC_MODEL`이 이 형태다(직접 워커는 `-Model daybreak|astra`와 `-Effort high|xhigh|max`로 받아 슬러그를 만든다). 접미사를 빼면 프록시가 환경변수 `GPT_EFFORT`(기본 high)를 쓴다. 엔드포인트는 두 모델 모두 `ultra`를 HTTP 400으로 거절한다(ultra는 effort 값이 아니라 Codex 클라이언트 쪽 모드다). ASTRA는 프록시가 낡은 codex 버전을 적어 보내면 아예 답하지 않으므로 `GPT_CODEX_VERSION`을 최신으로 둔다.
 
 **메인 모델은 `/model`로 바꿀 수 없다.** 모델을 고르는 일이 아니라 엔드포인트를 갈아끼우는 일이기 때문이다. 런처는 `ANTHROPIC_BASE_URL`을 프록시로 돌린 뒤 `claude`를 띄우고, 그 값은 프로세스 시작 시점에 정해진다. 이미 돌고 있는 일반 세션에서 `/model gpt-daybreak-blue-high`를 쳐도 요청이 진짜 Anthropic으로 가 404가 난다. GPT를 메인으로 쓰려면 런처로 **새 세션**을 띄운다.
 
