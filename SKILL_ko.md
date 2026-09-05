@@ -15,6 +15,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, GPT를 잡부로 붙여 구현
 - **Daybreak Blue의 슬러그는 `gpt-daybreak-blue`이고 버전 접두사가 없다.** 2026-08-19 codex responses 백엔드 실측으로 확인했다(`gpt-5.6-daybreak-blue`, `gpt-5.6-daybreak` 등 변형은 전부 HTTP 400, `gpt-daybreak-blue`만 200). GPT-5.6 Sol의 튜닝 버전이고, 백엔드 노동에서는 구독 쿼터를 덜 쓰면서 성능이 같으므로 계속 기본값이다.
 - **ASTRA의 슬러그는 `gpt-6-astra`다**(GPT-6 Astra, 2026-09-03 공개). 2026-09-05에 같은 백엔드로 실측했다. 이 슬러그만 200을 돌려주고 응답의 model도 `gpt-6-astra`로 오며 `gpt-6`, `gpt-astra`, `gpt-6-astra-latest`는 전부 HTTP 400이다. 화면과 i18n 카탈로그, 그리고 Daybreak가 막히는 백엔드 문제를 이쪽으로 보낸다.
 - **effort는 `high`가 기본.** 문제가 절망적으로 어려울 때만 `max`를 쓴다. **나머지 effort(low/medium/xhigh)는 쓰지 않는다.** ASTRA는 low부터 max까지 받지만 `ultra`는 HTTP 400으로 거절한다(2026-09-05 실측). Daybreak는 `ultra`도 받는다. 릴레이 스크립트·프록시·런처·직접 워커의 기본값이 전부 daybreak-blue/high로 맞춰져 있으므로, 지시를 생략해도 방침대로 간다.
+- **컨텍스트는 ASTRA가 1M이고 860k에서 압축한다.** 직접 워커와 런처가 ASTRA에 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`과 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=860000`을 건다. Daybreak는 500k 압축 그대로다. Codex 쪽에는 같은 숫자를 프로파일 파일에 넣고 `codex -p <이름>`으로 얹는다(`model`, `model_context_window = 1000000`, `model_auto_compact_token_limit = 860000`, `model_auto_compact_token_limit_scope = "total"`). 모델 선택기에 뜨게 하려면 `model_catalog_json` 항목에 `context_window` 1000000으로 등록해야 한다.
 - **ASTRA는 `version` 헤더를 본다.** 낡은 CLI 버전을 적어 보내면 백엔드가 Codex를 올리라며 HTTP 400을 준다. 프록시가 보내던 0.144.1이 그렇게 거절당했고, 지금은 0.153.4를 보낸다. `GPT_CODEX_VERSION`을 설치된 codex CLI 버전 이상으로 두고 CLI도 최신으로 유지한다(`codex update`, 데스크탑 앱은 스토어로 갱신한다).
 - 형태별 지정 문법(릴레이의 `GPT-MODEL:`/`GPT-EFFORT:` 지시 줄, 직접 워커의 `-Model daybreak|astra`, 워커·메인의 `gpt-daybreak-blue-high`와 `gpt-6-astra-high` 접미사형)은 `references/three-forms_ko.md`.
 
@@ -68,7 +69,7 @@ Claude 혼자 큰 구현을 다 태우는 대신, GPT를 잡부로 붙여 구현
 1. **오라클 릴레이 (`gpt` 에이전트)**: Daybreak는 도구 없이 추론만 한다. 붙여 준 코드·로그에 대한 소견·교차검증 전용이다. **어느 세션에서나 즉시** 되고 Claude 게이트를 구조적으로 강제하지만, 맥락을 전부 붙여 줘야 하는 갑갑함이 있다. 도구가 필요하면 형태 2로 간다.
 2. **직접 워커 (`tools/gpt-agent.ps1`)**: haiku 껍데기 없이, **어느 세션(브릿지 포함)에서든** 자식 `claude -p`를 프록시로 물려 Daybreak가 직접 도구(Read/Edit/Write/Grep/Glob에 WebSearch·WebFetch까지, `-AllowBash` 옵트인. 검색 MCP 도구 이름은 `-Tools`나 `GPT_AGENT_EXTRA_TOOLS`로 더한다)를 쥐게 한다. 일반 세션에서 도구 쥔 GPT가 필요할 때의 **기본 선택**이다(2026-08-20 실측 검증).
 3. **워커 서브에이전트 (Daybreak는 `gpt-worker`, ASTRA는 `astra-worker`)**: GPT 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령을 직접 한다. `ANTHROPIC_BASE_URL`이 프록시를 가리키는 세션 전용이다. **혼합 세션**(`gpt-cc.ps1 -Main claude`)이면 메인 루프는 Claude가 구독 OAuth 그대로 유지하면서(패스스루 실측 확인, API 키 불필요) 대화 안에서 `Agent(gpt-worker)`로 네이티브 협업을 한다.
-4. **메인 루프 모델 (런처 `gpt-cc.ps1`)**: Claude Code 전체를 Daybreak로 돌린다. **500k 토큰에서 자동압축**하도록 런처가 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`을 설정한다(settings 키 `autoCompactWindow`와 같은 노브다. 미인식 모델의 기본 윈도우 폴백을 덮는다).
+4. **메인 루프 모델 (런처 `gpt-cc.ps1`)**: Claude Code 전체를 GPT로 돌린다. 윈도우는 `-Base`를 따라간다. Daybreak Blue는 **500k에서 자동압축**하고(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`, settings 키 `autoCompactWindow`와 같은 노브), ASTRA는 **1M 윈도우에 860k 압축**이다(`CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`도 함께 건다). 둘 다 미인식 슬러그의 기본 윈도우 폴백을 덮는다.
 
 **모델 지정 문법은 형태마다 다르다.** 릴레이는 프롬프트 첫 줄의 지시 줄(`GPT-MODEL: gpt-daybreak-blue` 또는 `gpt-6-astra`에 `GPT-EFFORT: high|max`)로, 직접 워커는 `-Model daybreak|astra`와 `-Effort high|max` 파라미터로, 워커·메인은 effort를 접미사로 붙인 모델 id(`gpt-daybreak-blue-high`, `gpt-6-astra-high`, 절망적으로 어려우면 `-max` 형)로 준다. 메인 모델은 `/model`로 바꾸지 못한다. 엔드포인트를 갈아끼우는 일이라 런처로 새 세션을 띄워야 한다.
 

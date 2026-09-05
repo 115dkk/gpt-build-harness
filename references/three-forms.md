@@ -34,8 +34,8 @@ This runs a tool-holding Daybreak **in any session**, with no haiku wrapper (ver
 - MCP tools pass through the proxy as ordinary functions, but a claude.ai connector's tools only appear once the connector has connected, which can be a few turns into the run; a task that needs them on its first turn will not see them.
 - Extra `claude` arguments (`--output-format stream-json --verbose` and the like) are passed through after the script's own parameters; the script places them before `--allowedTools`, which would otherwise swallow them.
 - Use **absolute paths** in the task body; the child claude sometimes resets cwd.
-- The "unrecognized model" warning the child prints is harmless (the context window is pinned to 500k through the env).
-- Auto-compact at 500k (`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`) is applied by default.
+- The "unrecognized model" warning the child prints is harmless (the window is pinned through the env).
+- The window follows `-Model`: Daybreak gets `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`, ASTRA gets `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000` with compaction at 860000. The script sets them for the model chosen rather than inheriting a stale value from the shell, and restores the caller's values when the child exits.
 
 ## 3. Worker subagent (`gpt-worker` for Daybreak, `astra-worker` for ASTRA)
 
@@ -56,7 +56,9 @@ There is no gate here, so `gpt-worker` is used only as a backend logic labourer 
 
 All of Claude Code runs on GPT. The proxy translates the Anthropic Messages API into codex responses in real time. There is no gate, so the user supervises directly.
 
-**Auto-compact is 500k.** The launcher sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000` so a Daybreak Blue session compacts at 500k tokens (the same knob as the `autoCompactWindow` setting). `gpt-daybreak-blue-*` is a slug Claude Code does not recognise, so without this explicit setting the session falls back to the default window for unrecognised models.
+**The window follows `-Base`.** A Daybreak Blue session compacts at 500k (`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`, the same knob as the `autoCompactWindow` setting); an ASTRA session carries 1M and compacts at 860k (`CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000` plus `CLAUDE_CODE_AUTO_COMPACT_WINDOW=860000`). Neither slug is one Claude Code recognises, so without these the session falls back to the default window for unrecognised models. The launcher writes the values for the base it is starting, so a leftover from an earlier launch in the same shell cannot mis-size the session.
+
+On the Codex side (the CLI and the desktop app, not the harness) the same numbers live in a profile file layered with `codex -p <name>`: `model`, `model_context_window`, `model_auto_compact_token_limit` and `model_auto_compact_token_limit_scope = "total"`. A model that the account's catalogue does not list can still be added through `model_catalog_json`, where its `context_window` is what the picker and the compaction maths use.
 
 **It is incompatible with the remote control bridge (measured 2026-07-31).** `claude remote-control` inspects `ANTHROPIC_BASE_URL` at startup and refuses with exit 1 if it is not api.anthropic.com.
 

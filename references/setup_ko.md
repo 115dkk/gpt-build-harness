@@ -9,7 +9,7 @@
 - **오라클 릴레이**: 도구 없는 추론. 어느 세션에서나 즉시 된다. 손은 Claude가 쥔다. 순수 소견 전용.
 - **직접 워커(`gpt-agent.ps1`)**: 자식 claude로 GPT가 도구를 쥔다. 웹 검색도 쥔다(프록시가 codex 웹 검색으로 실행한다). 어느 세션에서나(브릿지 포함) 된다. 일반 세션의 기본 잡부.
 - **워커 서브에이전트**: GPT가 직접 도구를 쥔다. 프록시 세션 전용(혼합 세션 `gpt-cc -Main claude` 포함). `gpt-worker`가 Daybreak, `astra-worker`가 ASTRA다.
-- **메인 루프 모델**: 세션 전체를 GPT로 돌린다. 500k 자동압축(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`)은 런처가 건다.
+- **메인 루프 모델**: 세션 전체를 GPT로 돌린다. 윈도우는 런처가 모델에 맞춰 건다. Daybreak Blue는 500k 자동압축, ASTRA는 1M 윈도우에 860k 압축이다.
 
 자세한 판단은 `three-forms_ko.md`.
 

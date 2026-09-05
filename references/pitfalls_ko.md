@@ -59,8 +59,8 @@ Claude Code는 `ANTHROPIC_BASE_URL`이 프록시여도 구독 OAuth bearer를 �
 **자동 캐시는 `session_id` 헤더에 묶인다.**
 같은 대용량 접두라도 session_id가 매 요청 랜덤이면 캐시 히트가 0이라 매 턴 시스템 프롬프트를 풀차지한다. 프록시가 대화별 안정 session_id를 써야 히트가 걸린다.
 
-**메인 세션의 자동압축 500k는 런처가 건다.**
-`gpt-daybreak-blue-*`는 Claude Code가 인식하지 못하는 슬러그라, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`(또는 settings 키 `autoCompactWindow`)를 명시하지 않으면 미인식 모델용 기본 윈도우로 떨어진다. `gpt-cc.ps1`이 미설정일 때 500000을 세팅한다.
+**메인 세션의 자동압축 윈도우는 런처가 모델마다 건다.**
+`gpt-daybreak-blue-*`와 `gpt-6-astra-*`는 Claude Code가 인식하지 못하는 슬러그라, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`(또는 settings 키 `autoCompactWindow`)를 명시하지 않으면 미인식 모델용 기본 윈도우로 떨어진다. `gpt-cc.ps1`은 Daybreak Blue에 500000을, ASTRA에 860000과 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`을 쓴다. 셸에 이미 값이 있어도 지금 띄우는 base에 맞춰 덮어쓰는데, 런처는 환경을 되돌리지 않으므로 앞선 실행에서 남은 값이 다음 세션의 윈도우를 조용히 어긋나게 만들기 때문이다.
 
 ## 실행 환경
 

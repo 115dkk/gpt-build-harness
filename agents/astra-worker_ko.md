@@ -12,7 +12,8 @@ description: >-
   보지만, 간단하지 않은 화면을 Claude가 손으로 그리는 일은 이제 하지 않는다.
   effort는 high가 기본이고(frontmatter의 gpt-6-astra-high), 절망적으로 어려운
   문제에만 model을 gpt-6-astra-max로 바꾼다. ASTRA는 `ultra` effort를 HTTP
-  400으로 거절한다. **작동 조건**: ANTHROPIC_BASE_URL이 gpt-proxy.mjs를
+  400으로 거절한다. 컨텍스트 윈도우는 1M이고 860k에서 압축하며, 런처와 직접
+  워커가 환경변수로 못박는다. **작동 조건**: ANTHROPIC_BASE_URL이 gpt-proxy.mjs를
   가리켜야 한다(gpt-cc.ps1로 띄운 세션, 또는 혼합 세션 gpt-cc.ps1 -Main
   claude). 일반 세션에서 부르면 슬러그가 진짜 Anthropic으로 가 즉시 죽으므로,
   그럴 때는 `tools/gpt-agent.ps1 -Model astra`를 쓴다. 순수 백엔드 노동은

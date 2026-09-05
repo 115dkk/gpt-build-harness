@@ -34,8 +34,8 @@ haiku 껍데기 없이, **어느 세션에서든** 도구를 쥔 Daybreak를 부
 - MCP 도구는 프록시를 일반 함수로 통과한다. 다만 claude.ai 커넥터의 도구는 커넥터가 연결된 뒤에야 목록에 나타나고, 그때까지 몇 턴이 걸리기도 한다. 첫 턴부터 그 도구가 필요한 과제는 도구를 보지 못한다.
 - 추가 `claude` 인자(`--output-format stream-json --verbose` 등)는 스크립트 파라미터 뒤에 붙이면 그대로 넘어간다. 스크립트가 그 인자를 `--allowedTools` 앞에 두므로 삼켜지지 않는다.
 - 과제 본문에는 **절대경로**를 쓴다(자식 claude가 cwd를 리셋하기도 한다).
-- 자식이 찍는 "unrecognized model" 경고는 무해하다(컨텍스트 윈도우는 env로 500k 고정).
-- 자동압축 500k(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`)가 기본으로 걸린다.
+- 자식이 찍는 "unrecognized model" 경고는 무해하다(윈도우는 env로 고정한다).
+- 윈도우는 `-Model`을 따라간다. Daybreak는 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`, ASTRA는 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`에 860000 압축이다. 셸에 남아 있던 값을 물려받지 않고 고른 모델에 맞춰 새로 걸며, 자식이 끝나면 호출자의 값을 되돌린다.
 
 ## 3. 워커 서브에이전트 (Daybreak는 `gpt-worker`, ASTRA는 `astra-worker`)
 
@@ -56,7 +56,9 @@ GPT 자체가 서브에이전트의 LLM이라 파일 읽기·편집·명령 실�
 
 Claude Code 전체를 GPT로 돌린다. 프록시가 Anthropic Messages API를 codex responses로 실시간 변환한다. 게이트가 없으니 사용자가 직접 감독한다.
 
-**자동압축은 500k.** Daybreak Blue 세션은 500k 토큰에서 자동압축하도록 런처가 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`을 설정한다(settings 키 `autoCompactWindow`와 같은 노브다). `gpt-daybreak-blue-*`는 Claude Code가 인식하지 못하는 슬러그라, 이 명시 설정이 없으면 미인식 모델용 기본 윈도우로 떨어진다.
+**윈도우는 `-Base`를 따라간다.** Daybreak Blue 세션은 500k에서 압축하고(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000`, settings 키 `autoCompactWindow`와 같은 노브), ASTRA 세션은 1M을 들고 860k에서 압축한다(`CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`과 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=860000`). 둘 다 Claude Code가 인식하지 못하는 슬러그라, 이 설정이 없으면 미인식 모델용 기본 윈도우로 떨어진다. 런처는 지금 띄우는 base에 맞춰 값을 새로 쓰므로, 같은 셸에서 앞서 띄운 세션의 값이 남아 이번 세션의 윈도우를 어긋나게 만들지 않는다.
+
+Codex 쪽(하네스가 아니라 CLI와 데스크탑 앱)은 같은 숫자를 프로파일 파일에 넣고 `codex -p <이름>`으로 얹는다. `model`, `model_context_window`, `model_auto_compact_token_limit`, 그리고 `model_auto_compact_token_limit_scope = "total"`이다. 계정 카탈로그에 없는 모델도 `model_catalog_json`에 항목을 더하면 쓸 수 있고, 그 항목의 `context_window`가 선택기와 압축 계산에 쓰인다.
 
 **원격 조종 브릿지와는 양립하지 않는다(2026-07-31 실측).** `claude remote-control`은 기동할 때 `ANTHROPIC_BASE_URL`을 검사하고, api.anthropic.com이 아니면 exit 1로 거절한다.
 

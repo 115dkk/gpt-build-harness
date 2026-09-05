@@ -59,8 +59,8 @@ Passing the Anthropic `max_tokens` straight through gets HTTP 400 `Unsupported p
 **Automatic caching is tied to the `session_id` header.**
 Even with the same large prefix, a session_id randomised per request means zero cache hits and a full charge for the system prompt every turn. The proxy has to use a stable per-conversation session_id for hits to land.
 
-**The 500k auto-compact of a main session is set by the launcher.**
-`gpt-daybreak-blue-*` is a slug Claude Code does not recognise, so without an explicit `CLAUDE_CODE_AUTO_COMPACT_WINDOW` (or the `autoCompactWindow` setting) the session falls back to the default window for unrecognised models. `gpt-cc.ps1` sets 500000 when it is unset.
+**The auto-compact window of a main session is set by the launcher, per model.**
+`gpt-daybreak-blue-*` and `gpt-6-astra-*` are slugs Claude Code does not recognise, so without an explicit `CLAUDE_CODE_AUTO_COMPACT_WINDOW` (or the `autoCompactWindow` setting) the session falls back to the default window for unrecognised models. `gpt-cc.ps1` writes 500000 for Daybreak Blue, and 860000 with `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000` for ASTRA. It writes them for the base it is launching instead of honouring whatever the shell carried, because the launcher does not restore the environment afterwards and a leftover value from a previous launch would silently mis-size the next session.
 
 ## The execution environment
 
