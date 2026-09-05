@@ -8,8 +8,9 @@ description: >-
   GPT-6 Astra, released 2026-09-03) is the model trusted with screens that
   already stand, so non-trivial drawing and i18n catalogue labour on an
   existing frontend go to it and Claude stops drawing them by hand. Raising a
-  frontend from nothing stays with Claude, and ASTRA never designs. Effort is high by default, and max is reserved
-  for hopelessly hard problems. Claude keeps architecture, design direction,
+  frontend from nothing stays with Claude, and ASTRA never designs. Effort is high by default and
+  high is the sweet spot; xhigh and max are the rungs above it, reserved on
+  Daybreak for hopelessly hard problems and still unmeasured on ASTRA. Claude keeps architecture, design direction,
   planning and the verdict; the workers produce code and opinions.
   GPT runs in four forms: (1) a tool-less oracle relay for opinions only,
   (2) the direct worker (gpt-agent.ps1: a tool-holding GPT in any session
