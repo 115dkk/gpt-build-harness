@@ -59,6 +59,12 @@ Claude Code는 `ANTHROPIC_BASE_URL`이 프록시여도 구독 OAuth bearer를 �
 **자동 캐시는 `session_id` 헤더에 묶인다.**
 같은 대용량 접두라도 session_id가 매 요청 랜덤이면 캐시 히트가 0이라 매 턴 시스템 프롬프트를 풀차지한다. 프록시가 대화별 안정 session_id를 써야 히트가 걸린다.
 
+**본문에 `prompt_cache_key`도 넣는다. 헤더의 `session_id`만으로는 모자란다 (2026-09-12).**
+한 계정에서 워커 세션 셋을 동시에 돌리자 최상위 세션의 캐시 읽기 비율이 54~87%였고, 요청별 사용량에 두 가지 모양이 되풀이됐다. 긴 도구 대기 뒤의 완전 미스, 그리고 대화 본문은 빗나가고 공용 시스템 접두 38k 토큰만 맞는 적중이다. 같은 실행의 서브에이전트 세션은 요청을 연달아 보내므로 86~95%였다. OpenAI 캐시 안내는 `prompt_cache_key`를 같은 키의 요청을 접두를 쥔 서버로 보내는 라우팅 힌트로 설명하므로, 프록시가 `session_id`에 쓰던 대화별 고정값을 본문에도 실어 보낸다. `prompt_cache_retention`은 codex 백엔드가 받지 않는다(HTTP 400 `Unsupported parameter`, 2026-09-12 확인). 긴 도구 대기는 여전히 접두를 만료시키니 워커의 개별 명령은 짧게 쪼갠다. 같은 종류의 실행(서브에이전트를 거느린 최상위 ASTRA 워커, 세션 셋 동시)으로 바꾼 뒤 재 보니 캐시 읽기 85.2%로 이전 85.4%와 다르지 않았다. 키는 잰 값을 움직이지 못했고, 남은 완전 미스는 긴 대기 뒤가 아니라 8~15초의 보통 간격에서도 나오므로 클라이언트가 어쩔 수 없는 서버 쪽 라우팅이다. 키는 안내서가 요구하는 것이고 비용이 없으니 두되 수치를 기대하지는 말 것. 수치를 움직이는 것은 요청 패턴이어서, 요청을 연달아 보내는 서브에이전트 세션은 88~96%를 읽는다.
+
+**Windows에서 셸을 열 때는 셸 도구 둘을 다 연다.**
+Claude Code에는 `Bash`와 `PowerShell`이 있어서, `--allowedTools`에 `Bash`만 넣은 자식은 모델이 `PowerShell`을 고르는 순간 자동 거부되고 `-p` 모드에서는 물어볼 수도 없다. 2026-09-12에 ASTRA 워커가 PowerShell을 골라 cargo와 pnpm 게이트가 전부 "requires approval"로 돌아왔고, 검증 하나 없이 코드만 내놓았다. v0.5.4부터 `gpt-agent.ps1 -AllowBash`가 두 이름을 모두 넣는다.
+
 **메인 세션의 자동압축 윈도우는 런처가 모델마다 건다.**
 `gpt-daybreak-blue-*`와 `gpt-6-astra-*`는 Claude Code가 인식하지 못하는 슬러그라, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`(또는 settings 키 `autoCompactWindow`)를 명시하지 않으면 미인식 모델용 기본 윈도우로 떨어진다. `gpt-cc.ps1`은 Daybreak Blue에 500000을, ASTRA에 860000과 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`을 쓴다. 셸에 이미 값이 있어도 지금 띄우는 base에 맞춰 덮어쓰는데, 런처는 환경을 되돌리지 않으므로 앞선 실행에서 남은 값이 다음 세션의 윈도우를 조용히 어긋나게 만들기 때문이다.
 
