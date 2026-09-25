@@ -27,7 +27,7 @@ GPT를 잡부로 붙여 구현과 검증을 맡긴다. Claude는 아키텍처, �
 
 ## 실측으로 확인한 모델 정보
 
-**Daybreak Blue는 백엔드를 맡고, ASTRA는 연결 작업, 자료 확인과 감사를 맡는다.** 둘 다 화면은 그리지 않는다. 2026-09-25부터 화면은 Claude Opus 5.5의 일이다. GPT 모델은 이 둘만 부른다. luna/sol/terra를 비롯한 나머지 5.x 계열은 호출 대상에서 제외했다.
+**Daybreak Blue는 백엔드를 맡고, ASTRA는 연결 작업, 자료 확인, i18n 카탈로그와 감사를 맡는다.** 둘 다 화면은 그리지 않는다. 2026-09-25부터 화면은 Claude Opus 5.5의 일이다. GPT 모델은 이 둘만 부른다. luna/sol/terra를 비롯한 나머지 5.x 계열은 호출 대상에서 제외했다.
 
 - **Daybreak Blue의 슬러그는 `gpt-daybreak-blue`이며 버전 접두사가 없다.** 2026-08-19에 codex responses 백엔드로 확인했다. `gpt-5.6-daybreak-blue`와 `gpt-5.6-daybreak`는 HTTP 400을, `gpt-daybreak-blue`만 200을 반환한다. GPT-5.6 Sol의 튜닝판이며, 백엔드 작업에서는 구독 쿼터를 덜 쓰면서도 성능이 같아 계속 기본 모델로 쓴다.
 - **ASTRA의 슬러그는 `gpt-6-astra`다.** 2026-09-05에 실제 호출로 확인했다. 200을 반환하고 응답에도 `model: gpt-6-astra`를 적어 보내며, `gpt-6`, `gpt-astra`, `gpt-6-astra-latest`는 모두 HTTP 400을 반환한다.

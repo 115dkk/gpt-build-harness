@@ -26,7 +26,7 @@ Instead of burning Claude on the whole build, attach GPT as a labourer: delegate
 
 ## Model facts, all measured
 
-**Daybreak Blue is the backend labourer; ASTRA wires, looks things up and audits.** Neither draws: since 2026-09-25 screens are Claude Opus 5.5's work. Nothing else is called on the GPT side: luna/sol/terra and the rest of the 5.x line are discarded as targets.
+**Daybreak Blue is the backend labourer; ASTRA wires, looks things up, writes the i18n catalogues and audits.** Neither draws: since 2026-09-25 screens are Claude Opus 5.5's work. Nothing else is called on the GPT side: luna/sol/terra and the rest of the 5.x line are discarded as targets.
 
 - **Daybreak Blue, slug `gpt-daybreak-blue`**, with no version prefix. Confirmed against the codex responses backend on 2026-08-19: `gpt-5.6-daybreak-blue` and `gpt-5.6-daybreak` return HTTP 400, and only `gpt-daybreak-blue` returns 200. It is the tuning of GPT-5.6 Sol, and it stays the default for backend labour because it is cheaper on the subscription quota and just as good at it.
 - **ASTRA, slug `gpt-6-astra`.** Verified live on 2026-09-05: it returns 200 and echoes `model: gpt-6-astra`, while `gpt-6`, `gpt-astra` and `gpt-6-astra-latest` all return HTTP 400.
